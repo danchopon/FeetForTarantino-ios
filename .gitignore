@@ -60,3 +60,24 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Claude Code
+.mcp.json
+.claude/
+
+# Xcode derived data & archives
+DerivedData/
+*.xcarchive
+*.xcresult
+
+# Swift Package Manager resolved (optional: remove if you want reproducible builds)
+# Package.resolved
+
+# Environment / secrets
+.env
+*.pem
