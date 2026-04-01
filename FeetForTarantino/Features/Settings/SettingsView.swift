@@ -10,16 +10,18 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section {
+                Section(
+                    header: Text("Your Name"),
+                    footer: Text("Used when adding or marking movies as watched.")
+                ) {
                     TextField("Your name", text: $username)
                         .autocorrectionDisabled()
-                } header: {
-                    Text("Your Name")
-                } footer: {
-                    Text("Used when adding or marking movies as watched.")
                 }
 
-                Section {
+                Section(
+                    header: Text("Connected Groups"),
+                    footer: Text("Swipe left to remove a group. Or send /app in your Telegram group to connect automatically.")
+                ) {
                     ForEach(chatStore.chats) { chat in
                         HStack(spacing: 12) {
                             Image(systemName: "person.3.fill")
@@ -45,15 +47,9 @@ struct SettingsView: View {
                         chatStore.remove(at: offsets)
                     }
 
-                    Button {
-                        showAddGroup = true
-                    } label: {
+                    Button(action: { showAddGroup = true }) {
                         Label("Add Group Manually", systemImage: "plus.circle")
                     }
-                } header: {
-                    Text("Connected Groups")
-                } footer: {
-                    Text("Swipe left to remove a group. Or send /app in your Telegram group to connect automatically.")
                 }
             }
             .navigationTitle("Settings")
@@ -66,18 +62,17 @@ struct SettingsView: View {
     private var addGroupSheet: some View {
         NavigationStack {
             Form {
-                Section("Group Name") {
+                Section(header: Text("Group Name")) {
                     TextField("e.g. Movie Night", text: $newGroupName)
                         .autocorrectionDisabled()
                 }
-                Section {
+                Section(
+                    header: Text("Telegram Chat ID"),
+                    footer: Text("You can find the chat ID by forwarding a message from the group to @userinfobot.")
+                ) {
                     TextField("-1001234567890", text: $newGroupId)
                         .keyboardType(.numbersAndPunctuation)
                         .autocorrectionDisabled()
-                } header: {
-                    Text("Telegram Chat ID")
-                } footer: {
-                    Text("You can find the chat ID by forwarding a message from the group to @userinfobot.")
                 }
             }
             .navigationTitle("Add Group")
