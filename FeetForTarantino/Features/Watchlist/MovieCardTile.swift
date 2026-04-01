@@ -15,7 +15,7 @@ struct MovieCardTile: View {
                     .overlay(Image(systemName: "film").foregroundStyle(.secondary))
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 180)
+            .aspectRatio(2/3, contentMode: .fit)
             .clipped()
 
             VStack(alignment: .leading, spacing: 4) {
