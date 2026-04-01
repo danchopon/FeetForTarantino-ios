@@ -6,16 +6,10 @@ class WatchlistViewModel {
     var movies: [Movie] = []
     var isLoading = false
     var errorMessage: String?
-    var chatIdInput: String = ""
 
     private let service = MovieService()
 
-    func fetchMovies() async {
-        guard let chatId = Int64(chatIdInput) else {
-            errorMessage = "Invalid chat ID"
-            return
-        }
-
+    func fetchMovies(chatId: Int64) async {
         isLoading = true
         errorMessage = nil
 
