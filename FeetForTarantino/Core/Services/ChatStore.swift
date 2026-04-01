@@ -15,15 +15,16 @@ final class ChatStore {
     }
 
     func handle(_ url: URL) {
-        guard url.scheme == "feetfortarantino",
-              url.host == "chat",
+        guard url.scheme == "https",
+              url.host == "danchopon.github.io",
+              url.path == "/feetfortarantino/chat",
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let idItem = components.queryItems?.first(where: { $0.name == "id" }),
               let nameItem = components.queryItems?.first(where: { $0.name == "name" }),
               let chatId = Int64(idItem.value ?? ""),
               let name = nameItem.value?.removingPercentEncoding
         else { return }
-
+        
         if !chats.contains(where: { $0.chatId == chatId }) {
             chats.append(SavedChat(chatId: chatId, name: name))
             save()
