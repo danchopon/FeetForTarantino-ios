@@ -20,8 +20,9 @@ struct MovieDetailView: View {
                         )
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 360)
+                .frame(minHeight: 420)
                 .clipped()
+                .ignoresSafeArea(.all, edges: .top)
 
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -36,16 +37,44 @@ struct MovieDetailView: View {
                         }
                     }
 
-                    if let rating = movie.rating {
-                        HStack(spacing: 6) {
-                            Image(systemName: "star.fill")
-                                .foregroundStyle(.yellow)
-                            Text(String(format: "%.1f", rating))
-                                .fontWeight(.semibold)
-                            Text("/ 10")
-                                .foregroundStyle(.secondary)
+                    HStack(spacing: 16) {
+                        if let rating = movie.rating {
+                            HStack(spacing: 6) {
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(.yellow)
+                                Text(String(format: "%.1f", rating))
+                                    .fontWeight(.semibold)
+                                Text("/ 10")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
                         }
-                        .font(.subheadline)
+
+                        if let runtime = movie.formattedRuntime {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .foregroundStyle(.secondary)
+                                Text(runtime)
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let director = movie.director {
+                        Label(director, systemImage: "camera")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let overview = movie.overview {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Overview")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text(overview)
+                                .font(.body)
+                        }
                     }
 
                     Divider()
@@ -87,19 +116,21 @@ struct MovieDetailView: View {
                 .padding()
             }
         }
+        .ignoresSafeArea(.all, edges: .top)
         .navigationTitle(movie.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 
     private func formattedDate(_ isoString: String) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let date = formatter.date(from: isoString) {
-            return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+            return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short)
         }
         formatter.formatOptions = [.withInternetDateTime]
         if let date = formatter.date(from: isoString) {
-            return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+            return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short)
         }
         return isoString
     }
