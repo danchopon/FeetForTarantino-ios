@@ -38,10 +38,12 @@ struct MovieService {
         return url
     }
 
-    func fetchMovies(chatId: Int64) async throws -> [Movie] {
-        let url = try makeURL(path: "/movies", queryItems: [
-            URLQueryItem(name: "chat_id", value: String(chatId))
-        ])
+    func fetchMovies(chatId: Int64, status: String? = nil) async throws -> [Movie] {
+        var queryItems = [URLQueryItem(name: "chat_id", value: String(chatId))]
+        if let status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+        let url = try makeURL(path: "/movies", queryItems: queryItems)
         let (data, _) = try await URLSession.shared.data(from: url)
         return try JSONDecoder().decode([Movie].self, from: data)
     }

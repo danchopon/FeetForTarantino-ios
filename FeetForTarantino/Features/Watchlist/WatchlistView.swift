@@ -11,14 +11,26 @@ struct WatchlistView: View {
                 if chatStore.chats.isEmpty {
                     emptyState
                 } else if viewModel.isLoading {
-                    ProgressView()
+                    VStack {
+                        filterPicker
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
                 } else if let error = viewModel.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.red)
-                        .font(.subheadline)
-                        .padding()
+                    VStack {
+                        filterPicker
+                        Text(error)
+                            .foregroundStyle(.red)
+                            .font(.subheadline)
+                            .padding()
+                        Spacer()
+                    }
                 } else {
-                    movieList
+                    VStack(spacing: 0) {
+                        filterPicker
+                        movieList
+                    }
                 }
             }
             .navigationTitle(chatStore.selectedChat?.name ?? "Watchlist")
@@ -40,7 +52,22 @@ struct WatchlistView: View {
                 guard let chat = chatStore.selectedChat else { return }
                 await viewModel.fetchMovies(chatId: chat.chatId)
             }
+            .onChange(of: viewModel.statusFilter) { _, _ in
+                guard let chat = chatStore.selectedChat else { return }
+                Task { await viewModel.fetchMovies(chatId: chat.chatId) }
+            }
         }
+    }
+
+    private var filterPicker: some View {
+        Picker("Status", selection: $viewModel.statusFilter) {
+            ForEach(WatchlistViewModel.StatusFilter.allCases, id: \.self) { filter in
+                Text(filter.label).tag(filter)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     private var emptyState: some View {
@@ -60,25 +87,28 @@ struct WatchlistView: View {
     }
 
     private var movieList: some View {
-        ScrollView {
+        Group {
             if isGridLayout {
-                LazyVGrid(
-                    columns: [.init(.flexible()), .init(.flexible())],
-                    spacing: 12
-                ) {
-                    ForEach(viewModel.movies) { movie in
-                        MovieCardTile(movie: movie)
+                ScrollView {
+                    LazyVGrid(
+                        columns: [.init(.flexible()), .init(.flexible())],
+                        spacing: 12
+                    ) {
+                        ForEach(viewModel.movies) { movie in
+                            MovieCardTile(movie: movie)
+                        }
                     }
+                    .padding()
                 }
-                .padding()
             } else {
-                LazyVStack(spacing: 0) {
+                List {
                     ForEach(viewModel.movies) { movie in
                         MovieCardRow(movie: movie)
-                        Divider()
-                            .padding(.leading, 124)
+                            .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .listRowSeparator(.hidden)
                     }
                 }
+                .listStyle(.plain)
             }
         }
     }
