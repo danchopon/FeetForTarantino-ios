@@ -95,7 +95,10 @@ struct WatchlistView: View {
                         spacing: 12
                     ) {
                         ForEach(viewModel.movies) { movie in
-                            MovieCardTile(movie: movie)
+                            NavigationLink(destination: MovieDetailView(movie: movie)) {
+                                MovieCardTile(movie: movie)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding()
@@ -103,9 +106,11 @@ struct WatchlistView: View {
             } else {
                 List {
                     ForEach(viewModel.movies) { movie in
-                        MovieCardRow(movie: movie)
-                            .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowSeparator(.hidden)
+                        NavigationLink(destination: MovieDetailView(movie: movie)) {
+                            MovieCardRow(movie: movie)
+                        }
+                        .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 if movie.status == "to_watch" {
                                     Button {
