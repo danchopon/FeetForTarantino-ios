@@ -1,23 +1,16 @@
 import SwiftUI
 
 struct SearchView: View {
+    let isTabSelected: Bool
+
     @State private var viewModel = SearchViewModel()
     @Environment(ChatStore.self) private var chatStore
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                TextField("Search movies…", text: $viewModel.query)
-                    .keyboardType(.default)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        Task { await viewModel.search() }
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(.secondarySystemBackground))
-                    )
+                searchBar
                     .padding(.horizontal)
                     .padding(.top, 8)
                     .padding(.bottom, 4)
@@ -66,6 +59,11 @@ struct SearchView: View {
                             }
                         }
                     }
+                    .scrollDismissesKeyboard(.immediately)
+                    .onChange(of: isFocused) { _, focused in
+                        // X button visibility is driven by isFocused — nothing else needed
+                        _ = focused
+                    }
                 }
             }
             .navigationTitle("Search")
@@ -78,5 +76,44 @@ struct SearchView: View {
                 Text(viewModel.addErrorMessage ?? "")
             }
         }
+        .onChange(of: isTabSelected) { _, isSelected in
+            if isSelected {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isFocused = true
+                }
+            }
+        }
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+
+                TextField("Search movies…", text: $viewModel.query)
+                    .focused($isFocused)
+                    .keyboardType(.default)
+                    .submitLabel(.search)
+                    .onSubmit {
+                        Task { await viewModel.search() }
+                    }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            if isFocused {
+                Button(action: { isFocused = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isFocused)
     }
 }
