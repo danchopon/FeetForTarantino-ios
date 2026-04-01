@@ -1,27 +1,25 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        TabView {
-            WatchlistView()
-                .tabItem {
-                    Label("Watchlist", systemImage: "film")
-                }
+    @State private var selectedTab = 0
 
-            SearchView()
-                .tabItem {
-                    Label("Search", systemImage: "magnifyingglass")
-                }
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            WatchlistView()
+                .tabItem { Label("Watchlist", systemImage: "film") }
+                .tag(0)
 
             RecommendationsView()
-                .tabItem {
-                    Label("For You", systemImage: "sparkles")
-                }
+                .tabItem { Label("For You", systemImage: "sparkles") }
+                .tag(1)
 
             SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
+                .tabItem { Label("Settings", systemImage: "gear") }
+                .tag(2)
+
+            SearchView(isTabSelected: selectedTab == 3)
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                .tag(3)
         }
     }
 }
