@@ -41,6 +41,12 @@ struct MovieCardTile: View {
                         }
                     }
                 }
+
+                if let runtime = movie.formattedRuntime {
+                    Label(runtime, systemImage: "clock")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(8)
         }
