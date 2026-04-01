@@ -106,6 +106,16 @@ struct WatchlistView: View {
                         MovieCardRow(movie: movie)
                             .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
                             .listRowSeparator(.hidden)
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                if movie.status == "to_watch" {
+                                    Button {
+                                        Task { await viewModel.markWatched(movie) }
+                                    } label: {
+                                        Label("Watched", systemImage: "eye")
+                                    }
+                                    .tint(.green)
+                                }
+                            }
                     }
                 }
                 .listStyle(.plain)

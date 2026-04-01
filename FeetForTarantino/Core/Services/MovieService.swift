@@ -57,6 +57,20 @@ struct MovieService {
         return try JSONDecoder().decode(SearchResponse.self, from: data)
     }
 
+    func markWatched(movieId: Int, chatId: Int64, watchedBy: String = "iOS") async throws {
+        let url = try makeURL(path: "/movies/\(movieId)/watched", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["watched_by": watchedBy])
+        let (_, response) = try await URLSession.shared.data(for: request)
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 400 {
+            throw MovieServiceError.notFound
+        }
+    }
+
     func addMovie(chatId: Int64, movie: Movie) async throws {
         let url = try makeURL(path: "/movies")
         var request = URLRequest(url: url)
