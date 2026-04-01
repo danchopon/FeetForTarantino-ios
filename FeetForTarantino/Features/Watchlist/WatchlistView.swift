@@ -1,8 +1,28 @@
 import SwiftUI
 
+enum LayoutMode: String, CaseIterable {
+    case list, grid2, grid1
+
+    var icon: String {
+        switch self {
+        case .list:  return "list.bullet"
+        case .grid2: return "square.grid.2x2"
+        case .grid1: return "rectangle.grid.1x2"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .list:  return "List"
+        case .grid2: return "2-Column Grid"
+        case .grid1: return "Large Grid"
+        }
+    }
+}
+
 struct WatchlistView: View {
     @State private var viewModel = WatchlistViewModel()
-    @State private var isGridLayout = false
+    @State private var layoutMode: LayoutMode = .list
     @Environment(ChatStore.self) private var chatStore
 
     var body: some View {
@@ -41,10 +61,14 @@ struct WatchlistView: View {
                 }
                 if !chatStore.chats.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            isGridLayout.toggle()
+                        Menu {
+                            Picker("Layout", selection: $layoutMode) {
+                                ForEach(LayoutMode.allCases, id: \.self) { mode in
+                                    Label(mode.label, systemImage: mode.icon).tag(mode)
+                                }
+                            }
                         } label: {
-                            Image(systemName: isGridLayout ? "list.bullet" : "square.grid.2x2")
+                            Image(systemName: layoutMode.icon)
                         }
                     }
                 }
@@ -103,8 +127,39 @@ struct WatchlistView: View {
     }
 
     private var movieList: some View {
-        Group {
-            if isGridLayout {
+        switch layoutMode {
+        case .list:
+            AnyView(
+                List {
+                    ForEach(viewModel.movies) { movie in
+                        NavigationLink(destination: MovieDetailView(movie: movie)) {
+                            MovieCardRow(movie: movie)
+                        }
+                        .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            if movie.status == "to_watch" {
+                                Button {
+                                    Task { await viewModel.markWatched(movie) }
+                                } label: {
+                                    Label("Watched", systemImage: "eye")
+                                }
+                                .tint(.green)
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task { await viewModel.deleteMovie(movie) }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+            )
+        case .grid2:
+            AnyView(
                 ScrollView {
                     LazyVGrid(
                         columns: [.init(.flexible()), .init(.flexible())],
@@ -119,35 +174,37 @@ struct WatchlistView: View {
                     }
                     .padding()
                 }
-            } else {
+            )
+        case .grid1:
+            AnyView(
                 List {
                     ForEach(viewModel.movies) { movie in
                         NavigationLink(destination: MovieDetailView(movie: movie)) {
-                            MovieCardRow(movie: movie)
+                            MovieCardLarge(movie: movie)
                         }
                         .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
                         .listRowSeparator(.hidden)
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                if movie.status == "to_watch" {
-                                    Button {
-                                        Task { await viewModel.markWatched(movie) }
-                                    } label: {
-                                        Label("Watched", systemImage: "eye")
-                                    }
-                                    .tint(.green)
-                                }
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    Task { await viewModel.deleteMovie(movie) }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            if movie.status == "to_watch" {
+                                Button {
+                                    Task { await viewModel.markWatched(movie) }
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label("Watched", systemImage: "eye")
                                 }
+                                .tint(.green)
                             }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task { await viewModel.deleteMovie(movie) }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 .listStyle(.plain)
-            }
+            )
         }
     }
 
