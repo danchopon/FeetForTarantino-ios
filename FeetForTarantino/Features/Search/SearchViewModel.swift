@@ -8,6 +8,9 @@ class SearchViewModel {
     var isLoading = false
     var isLoadingMore = false
     var errorMessage: String?
+    var addedMovieIds: Set<Int> = []
+    var addingMovieIds: Set<Int> = []
+    var addErrorMessage: String?
 
     private var currentPage = 1
     private var totalPages = 1
@@ -50,5 +53,17 @@ class SearchViewModel {
         }
 
         isLoadingMore = false
+    }
+
+    func addMovie(_ movie: Movie, chatId: Int64) async {
+        addingMovieIds.insert(movie.id)
+        addErrorMessage = nil
+        do {
+            try await service.addMovie(chatId: chatId, movie: movie)
+            addedMovieIds.insert(movie.id)
+        } catch {
+            addErrorMessage = error.localizedDescription
+        }
+        addingMovieIds.remove(movie.id)
     }
 }

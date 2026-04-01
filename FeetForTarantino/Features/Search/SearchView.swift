@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @State private var viewModel = SearchViewModel()
+    @Environment(ChatStore.self) private var chatStore
 
     var body: some View {
         NavigationStack {
@@ -41,8 +42,16 @@ struct SearchView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(viewModel.results) { movie in
-                                SearchResultCard(movie: movie) {
-                                    // Add to watchlist — coming soon
+                                SearchResultCard(
+                                    movie: movie,
+                                    isAdded: viewModel.addedMovieIds.contains(movie.id),
+                                    isAdding: viewModel.addingMovieIds.contains(movie.id)
+                                ) {
+                                    guard let chatId = chatStore.selectedChat?.chatId else {
+                                        viewModel.addErrorMessage = "No group selected. Connect a Telegram group first."
+                                        return
+                                    }
+                                    Task { await viewModel.addMovie(movie, chatId: chatId) }
                                 }
                                 .onAppear {
                                     Task { await viewModel.loadNextPageIfNeeded(currentItem: movie) }
@@ -60,6 +69,14 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Search")
+            .alert("Error", isPresented: Binding(
+                get: { viewModel.addErrorMessage != nil },
+                set: { if !$0 { viewModel.addErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.addErrorMessage ?? "")
+            }
         }
     }
 }

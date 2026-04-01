@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SearchResultCard: View {
     let movie: Movie
+    let isAdded: Bool
+    let isAdding: Bool
     let onAdd: () -> Void
 
     var body: some View {
@@ -42,16 +44,31 @@ struct SearchResultCard: View {
 
                 Spacer()
 
-                Button(action: onAdd) {
-                    Label("Add", systemImage: "plus")
-                        .font(.subheadline.weight(.medium))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Color.accentColor)
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
+                Group {
+                    if isAdding {
+                        ProgressView()
+                            .frame(height: 30)
+                    } else if isAdded {
+                        Label("Added", systemImage: "checkmark")
+                            .font(.subheadline.weight(.medium))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Color.secondary.opacity(0.15))
+                            .foregroundStyle(.secondary)
+                            .clipShape(Capsule())
+                    } else {
+                        Button(action: onAdd) {
+                            Label("Add", systemImage: "plus")
+                                .font(.subheadline.weight(.medium))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
+                                .background(Color.accentColor)
+                                .foregroundStyle(.white)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 4)
