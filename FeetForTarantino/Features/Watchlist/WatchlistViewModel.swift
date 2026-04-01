@@ -24,6 +24,7 @@ class WatchlistViewModel {
     }
 
     var movies: [Movie] = []
+    var stats: Stats?
     var isLoading = false
     var errorMessage: String?
     var statusFilter: StatusFilter = .toWatch
@@ -36,11 +37,15 @@ class WatchlistViewModel {
         isLoading = true
         errorMessage = nil
 
+        async let moviesResult = service.fetchMovies(chatId: chatId, status: statusFilter.apiValue)
+        async let statsResult = service.fetchStats(chatId: chatId)
+
         do {
-            movies = try await service.fetchMovies(chatId: chatId, status: statusFilter.apiValue)
+            movies = try await moviesResult
         } catch {
             errorMessage = error.localizedDescription
         }
+        stats = try? await statsResult
 
         isLoading = false
     }

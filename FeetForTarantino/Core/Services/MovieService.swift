@@ -57,6 +57,14 @@ struct MovieService {
         return try JSONDecoder().decode(SearchResponse.self, from: data)
     }
 
+    func fetchStats(chatId: Int64) async throws -> Stats {
+        let url = try makeURL(path: "/stats", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(Stats.self, from: data)
+    }
+
     func deleteMovie(movieId: Int, chatId: Int64) async throws {
         let url = try makeURL(path: "/movies/\(movieId)", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))

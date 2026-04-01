@@ -29,6 +29,7 @@ struct WatchlistView: View {
                 } else {
                     VStack(spacing: 0) {
                         filterPicker
+                        statsBar
                         movieList
                     }
                 }
@@ -56,6 +57,21 @@ struct WatchlistView: View {
                 guard let chat = chatStore.selectedChat else { return }
                 Task { await viewModel.fetchMovies(chatId: chat.chatId) }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var statsBar: some View {
+        if let stats = viewModel.stats {
+            HStack(spacing: 20) {
+                Label("\(stats.toWatch) to watch", systemImage: "bookmark")
+                Label("\(stats.watched) watched", systemImage: "eye")
+                Spacer()
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal)
+            .padding(.bottom, 6)
         }
     }
 
