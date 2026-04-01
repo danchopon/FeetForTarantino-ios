@@ -86,7 +86,8 @@ struct MovieService {
         }
     }
 
-    func markWatched(movieId: Int, chatId: Int64, watchedBy: String = "iOS") async throws {
+    func markWatched(movieId: Int, chatId: Int64) async throws {
+        let watchedBy = UserDefaults.standard.string(forKey: "username").flatMap { $0.isEmpty ? nil : $0 } ?? "iOS"
         let url = try makeURL(path: "/movies/\(movieId)/watched", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
@@ -106,10 +107,11 @@ struct MovieService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+        let username = UserDefaults.standard.string(forKey: "username").flatMap { $0.isEmpty ? nil : $0 } ?? "iOS"
         var body: [String: Any] = [
             "chat_id": chatId,
             "title": movie.title,
-            "added_by": "iOS"
+            "added_by": username
         ]
         if let tmdbId = movie.tmdbId { body["tmdb_id"] = tmdbId }
         if let year = movie.year { body["year"] = year }

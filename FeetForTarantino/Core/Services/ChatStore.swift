@@ -36,6 +36,13 @@ final class ChatStore {
         selectedChat = chat
     }
 
+    func addManually(chatId: Int64, name: String) {
+        guard !chats.contains(where: { $0.chatId == chatId }) else { return }
+        chats.append(SavedChat(chatId: chatId, name: name))
+        if selectedChat == nil { selectedChat = chats.first }
+        save()
+    }
+
     func remove(at offsets: IndexSet) {
         let removedIds = offsets.map { chats[$0].id }
         chats.remove(atOffsets: offsets)
