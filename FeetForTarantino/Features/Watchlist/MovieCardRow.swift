@@ -18,7 +18,7 @@ struct MovieCardRow: View {
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(movie.title)
                     .font(.headline)
                     .lineLimit(2)
@@ -37,6 +37,18 @@ struct MovieCardRow: View {
                         Text(String(format: "%.1f", rating))
                             .font(.subheadline)
                     }
+                }
+
+                if let addedBy = movie.addedBy {
+                    Label("Added by \(addedBy)", systemImage: "person")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let runtime = movie.formattedRuntime {
+                    Label(runtime, systemImage: "clock")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
