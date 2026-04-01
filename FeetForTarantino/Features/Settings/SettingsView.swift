@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var newGroupId: String = ""
     @State private var newGroupName: String = ""
 
+    private var chats: [SavedChat] { chatStore.chats }
+
     var body: some View {
         NavigationStack {
             List {
@@ -22,7 +24,7 @@ struct SettingsView: View {
                     header: Text("Connected Groups"),
                     footer: Text("Swipe left to remove a group. Or send /app in your Telegram group to connect automatically.")
                 ) {
-                    ForEach(chatStore.chats) { chat in
+                    ForEach(chats) { (chat: SavedChat) in
                         HStack(spacing: 12) {
                             Image(systemName: "person.3.fill")
                                 .foregroundStyle(.secondary)
@@ -36,7 +38,7 @@ struct SettingsView: View {
                             Spacer()
                             if chat.id == chatStore.selectedChat?.id {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(.accentColor)
+                                    .foregroundStyle(.tint)
                                     .font(.subheadline)
                             }
                         }
