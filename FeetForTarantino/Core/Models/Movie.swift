@@ -18,12 +18,22 @@ struct Movie: Codable, Identifiable {
     let rating: Double?
     let posterPath: String?
 
+    // Extended metadata (returned by backend when available)
+    let overview: String?
+    let runtime: Int?
+    let director: String?
+
     /// Stable identity: prefer DB id, fall back to TMDB id, then title hash.
     var id: Int { dbId ?? tmdbId ?? title.hashValue }
 
     var posterURL: URL? {
         guard let path = posterPath else { return nil }
         return URL(string: "https://image.tmdb.org/t/p/w500" + path)
+    }
+
+    var formattedRuntime: String? {
+        guard let m = runtime else { return nil }
+        return m >= 60 ? "\(m / 60)h \(m % 60)m" : "\(m)m"
     }
 
     enum CodingKeys: String, CodingKey {
@@ -40,9 +50,13 @@ struct Movie: Codable, Identifiable {
         case rating
         case posterPath = "poster_path"
         case genres
+        case overview
+        case runtime
+        case director
     }
 
-    init(title: String, tmdbId: Int? = nil, year: Int? = nil, rating: Double? = nil, posterPath: String? = nil, genres: String? = nil) {
+    init(title: String, tmdbId: Int? = nil, year: Int? = nil, rating: Double? = nil,
+         posterPath: String? = nil, genres: String? = nil, overview: String? = nil) {
         self.dbId = nil
         self.chatId = nil
         self.title = title
@@ -51,6 +65,9 @@ struct Movie: Codable, Identifiable {
         self.rating = rating
         self.posterPath = posterPath
         self.genres = genres
+        self.overview = overview
+        self.runtime = nil
+        self.director = nil
         self.status = nil
         self.addedBy = nil
         self.addedAt = nil
@@ -72,6 +89,9 @@ struct Movie: Codable, Identifiable {
         rating     = try c.decodeIfPresent(Double.self, forKey: .rating)
         posterPath = try c.decodeIfPresent(String.self, forKey: .posterPath)
         genres     = try c.decodeIfPresent(String.self, forKey: .genres)
+        overview   = try c.decodeIfPresent(String.self, forKey: .overview)
+        runtime    = try c.decodeIfPresent(Int.self,    forKey: .runtime)
+        director   = try c.decodeIfPresent(String.self, forKey: .director)
         // year may arrive as Int (watchlist) or String (search/TMDB)
         if let intYear = try? c.decodeIfPresent(Int.self, forKey: .year) {
             year = intYear
