@@ -12,6 +12,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Search", systemImage: "magnifyingglass")
                 }
+
+            RecommendationsView()
+                .tabItem {
+                    Label("For You", systemImage: "sparkles")
+                }
         }
     }
 }

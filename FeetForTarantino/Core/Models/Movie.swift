@@ -42,6 +42,22 @@ struct Movie: Codable, Identifiable {
         case genres
     }
 
+    init(title: String, tmdbId: Int? = nil, year: Int? = nil, rating: Double? = nil, posterPath: String? = nil, genres: String? = nil) {
+        self.dbId = nil
+        self.chatId = nil
+        self.title = title
+        self.tmdbId = tmdbId
+        self.year = year
+        self.rating = rating
+        self.posterPath = posterPath
+        self.genres = genres
+        self.status = nil
+        self.addedBy = nil
+        self.addedAt = nil
+        self.watchedBy = nil
+        self.watchedAt = nil
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         dbId       = try c.decodeIfPresent(Int.self,    forKey: .dbId)
