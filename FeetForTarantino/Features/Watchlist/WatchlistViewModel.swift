@@ -54,4 +54,14 @@ class WatchlistViewModel {
             errorMessage = error.localizedDescription
         }
     }
+
+    func deleteMovie(_ movie: Movie) async {
+        guard let chatId = currentChatId else { return }
+        do {
+            try await service.deleteMovie(movieId: movie.id, chatId: chatId)
+            movies.removeAll { $0.id == movie.id }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
