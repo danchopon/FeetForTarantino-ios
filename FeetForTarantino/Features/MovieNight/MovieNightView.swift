@@ -283,7 +283,7 @@ struct MovieNightView: View {
 
             Button {
                 guard let id = chatId, let user = selectedUser else { return }
-                Task { await viewModel.addToBasket(movieNum: position, chatId: id, userId: user.userId) }
+                Task { await viewModel.addToBasket(movieNum: position, chatId: id, userId: user.userId, userName: user.firstName) }
             } label: {
                 Image(systemName: inBasket ? "checkmark.circle.fill" : "plus.circle")
                     .font(.title2)

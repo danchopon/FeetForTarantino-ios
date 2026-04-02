@@ -63,11 +63,11 @@ final class MovieNightViewModel {
 
     // MARK: - Basket actions
 
-    func addToBasket(movieNum: Int, chatId: Int64, userId: Int) async {
+    func addToBasket(movieNum: Int, chatId: Int64, userId: Int, userName: String) async {
         isLoadingAction = true
         defer { isLoadingAction = false }
         do {
-            try await service.addToBasket(chatId: chatId, userId: userId, movieNum: movieNum)
+            try await service.addToBasket(chatId: chatId, userId: userId, userName: userName, movieNums: [movieNum])
             await refreshMyBasket(chatId: chatId, userId: userId)
         } catch {
             errorMessage = error.localizedDescription
@@ -194,7 +194,7 @@ final class MovieNightViewModel {
         for entry in allBasket {
             if dict[entry.userId] == nil {
                 order.append(entry.userId)
-                dict[entry.userId] = (entry.displayName, [])
+                dict[entry.userId] = (entry.userName, [])
             }
             dict[entry.userId]?.movies.append(entry.movie)
         }

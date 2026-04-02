@@ -195,10 +195,11 @@ struct MovieService {
             URLQueryItem(name: "user_id", value: String(userId))
         ])
         let data = try await fetch(url)
-        return try decode([Movie].self, from: data, source: url)
+        let entries = try decode([BasketMovieEntry].self, from: data, source: url)
+        return entries.compactMap { $0.movie }
     }
 
-    func addToBasket(chatId: Int64, userId: Int, movieNum: Int) async throws {
+    func addToBasket(chatId: Int64, userId: Int, userName: String, movieNums: [Int]) async throws {
         let url = try makeURL(path: "/basket/add")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -206,7 +207,8 @@ struct MovieService {
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "chat_id": chatId,
             "user_id": userId,
-            "movie_num": movieNum
+            "user_name": userName,
+            "movie_nums": movieNums
         ])
         try await perform(request)
     }
@@ -218,6 +220,9 @@ struct MovieService {
         ])
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // movie_nums=null clears the entire user's basket
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["movie_nums": NSNull()])
         try await perform(request)
     }
 
