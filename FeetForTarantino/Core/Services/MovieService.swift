@@ -102,6 +102,30 @@ struct MovieService {
         return url
     }
 
+    // MARK: - Presence
+
+    func sendHeartbeat(chatId: Int64, userId: Int) async throws {
+        let url = try makeURL(path: "/presence/heartbeat")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "chat_id": chatId,
+            "user_id": userId
+        ])
+        try await perform(request)
+    }
+
+    func fetchOnlineUsers(chatId: Int64) async throws -> [Int] {
+        let url = try makeURL(path: "/presence", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        let data = try await fetch(url)
+        return try decode(PresenceResponse.self, from: data, source: url).onlineUserIds
+    }
+
+    // MARK: - Movies
+
     func fetchMovies(chatId: Int64, status: String? = nil) async throws -> [Movie] {
         var queryItems = [URLQueryItem(name: "chat_id", value: String(chatId))]
         if let status {
