@@ -13,13 +13,17 @@ struct ContentView: View {
                 .tabItem { Label("For You", systemImage: "sparkles") }
                 .tag(1)
 
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gear") }
+            MovieNightView()
+                .tabItem { Label("Movie Night", systemImage: "popcorn") }
                 .tag(2)
 
-            SearchView(isTabSelected: selectedTab == 3)
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gear") }
                 .tag(3)
+
+            SearchView(isTabSelected: selectedTab == 4)
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                .tag(4)
         }
     }
 }
