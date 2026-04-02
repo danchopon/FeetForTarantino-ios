@@ -186,7 +186,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
         let data = try await fetch(url)
-        return try decode([BasketEntry].self, from: data, source: url)
+        return try decode(BasketResponse.self, from: data, source: url).entries
     }
 
     func fetchMyBasket(chatId: Int64, userId: Int) async throws -> [Movie] {
