@@ -75,7 +75,7 @@ struct RecommendationsView: View {
     private var shimmerLoadingCards: some View {
         ScrollView {
             VStack(spacing: 0) {
-                ForEach(0..<3, id: \.self) { _ in
+                ForEach(0..<5, id: \.self) { _ in
                     ShimmerSuggestionCard()
                     Divider()
                         .padding(.leading, 104)
@@ -249,17 +249,16 @@ private struct ShimmerSuggestionCard: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.secondary.opacity(0.15))
                 .frame(width: 80, height: 120)
+                .shimmer()
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 0) {
-                // Title — two lines
-                VStack(alignment: .leading, spacing: 6) {
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.15))
-                        .frame(height: 14)
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.15))
-                        .frame(width: 130, height: 14)
-                }
+                // Title — one line
+                Capsule()
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(height: 14)
+                    .shimmer()
+                    .clipShape(Capsule())
 
                 Spacer().frame(height: 10)
 
@@ -267,6 +266,8 @@ private struct ShimmerSuggestionCard: View {
                 Capsule()
                     .fill(Color.secondary.opacity(0.12))
                     .frame(width: 50, height: 12)
+                    .shimmer()
+                    .clipShape(Capsule())
 
                 Spacer().frame(height: 8)
 
@@ -274,6 +275,8 @@ private struct ShimmerSuggestionCard: View {
                 Capsule()
                     .fill(Color.secondary.opacity(0.12))
                     .frame(width: 40, height: 12)
+                    .shimmer()
+                    .clipShape(Capsule())
 
                 Spacer().frame(height: 10)
 
@@ -282,22 +285,36 @@ private struct ShimmerSuggestionCard: View {
                     Capsule()
                         .fill(Color.secondary.opacity(0.1))
                         .frame(height: 11)
+                        .shimmer()
+                        .clipShape(Capsule())
                     Capsule()
                         .fill(Color.secondary.opacity(0.1))
                         .frame(height: 11)
+                        .shimmer()
+                        .clipShape(Capsule())
                     Capsule()
                         .fill(Color.secondary.opacity(0.1))
                         .frame(width: 90, height: 11)
+                        .shimmer()
+                        .clipShape(Capsule())
                 }
 
                 Spacer(minLength: 0)
+
+                Spacer().frame(height: 10)
+
+                // Add button placeholder — matches real button size
+                Capsule()
+                    .fill(Color.secondary.opacity(0.12))
+                    .frame(width: 72, height: 29)
+                    .shimmer()
+                    .clipShape(Capsule())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 4)
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .shimmer()
     }
 }
 
