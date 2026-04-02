@@ -28,7 +28,23 @@ struct MovieService {
 
     // MARK: - Logging wrappers (DEBUG only)
 
-    /// GET – returns decoded data.
+    /// Decode helper — logs the endpoint and raw body on DecodingError.
+    private func decode<T: Decodable>(_ type: T.Type, from data: Data, source: URL) throws -> T {
+        do {
+            return try JSONDecoder().decode(type, from: data)
+        } catch {
+            #if DEBUG
+            print("[NET] ✗ DECODE ERROR \(source.path): \(error)")
+            if let raw = String(data: data, encoding: .utf8) {
+                let preview = raw.count > 600 ? raw.prefix(600) + "…" : Substring(raw)
+                print("      Raw body: \(preview)")
+            }
+            #endif
+            throw error
+        }
+    }
+
+    /// GET – returns raw data.
     private func fetch(_ url: URL) async throws -> Data {
         let start = Date()
         let (data, response) = try await URLSession.shared.data(from: url)
@@ -93,7 +109,7 @@ struct MovieService {
         }
         let url = try makeURL(path: "/movies", queryItems: queryItems)
         let data = try await fetch(url)
-        return try JSONDecoder().decode([Movie].self, from: data)
+        return try decode([Movie].self, from: data, source: url)
     }
 
     func search(query: String, page: Int = 1) async throws -> SearchResponse {
@@ -102,7 +118,7 @@ struct MovieService {
             URLQueryItem(name: "page", value: String(page))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode(SearchResponse.self, from: data)
+        return try decode(SearchResponse.self, from: data, source: url)
     }
 
     func fetchRecommendations(chatId: Int64, query: String = "") async throws -> Recommendation {
@@ -111,7 +127,7 @@ struct MovieService {
             URLQueryItem(name: "q", value: query)
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode(Recommendation.self, from: data)
+        return try decode(Recommendation.self, from: data, source: url)
     }
 
     func fetchStats(chatId: Int64) async throws -> Stats {
@@ -119,7 +135,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode(Stats.self, from: data)
+        return try decode(Stats.self, from: data, source: url)
     }
 
     func deleteMovie(movieId: Int, chatId: Int64) async throws {
@@ -154,7 +170,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode([TelegramUser].self, from: data)
+        return try decode([TelegramUser].self, from: data, source: url)
     }
 
     func fetchRandom(chatId: Int64) async throws -> Movie {
@@ -162,7 +178,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode(Movie.self, from: data)
+        return try decode(Movie.self, from: data, source: url)
     }
 
     func fetchBasket(chatId: Int64) async throws -> [BasketEntry] {
@@ -170,7 +186,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode([BasketEntry].self, from: data)
+        return try decode([BasketEntry].self, from: data, source: url)
     }
 
     func fetchMyBasket(chatId: Int64, userId: Int) async throws -> [Movie] {
@@ -179,7 +195,7 @@ struct MovieService {
             URLQueryItem(name: "user_id", value: String(userId))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode([Movie].self, from: data)
+        return try decode([Movie].self, from: data, source: url)
     }
 
     func addToBasket(chatId: Int64, userId: Int, movieNum: Int) async throws {
@@ -219,7 +235,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode(Movie.self, from: data)
+        return try decode(Movie.self, from: data, source: url)
     }
 
     func fetchPoll(chatId: Int64, n: Int = 3) async throws -> [Movie] {
@@ -228,7 +244,7 @@ struct MovieService {
             URLQueryItem(name: "n", value: String(n))
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode([Movie].self, from: data)
+        return try decode([Movie].self, from: data, source: url)
     }
 
     func pickPollRandom(chatId: Int64, movieNums: [Int]) async throws -> Movie {
@@ -238,7 +254,7 @@ struct MovieService {
             URLQueryItem(name: "movie_nums", value: numsString)
         ])
         let data = try await fetch(url)
-        return try JSONDecoder().decode(Movie.self, from: data)
+        return try decode(Movie.self, from: data, source: url)
     }
 
     func addMovie(chatId: Int64, movie: Movie) async throws {
