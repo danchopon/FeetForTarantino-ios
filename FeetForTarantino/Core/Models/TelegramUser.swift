@@ -7,7 +7,6 @@ struct TelegramUser: Codable, Identifiable {
     let lastName: String?
     let username: String?
     let isBot: Bool
-    let photoUrl: String?
 
     var id: Int { userId }
 
@@ -15,11 +14,6 @@ struct TelegramUser: Codable, Identifiable {
         if let username { return "@\(username)" }
         if let lastName { return "\(firstName) \(lastName)" }
         return firstName
-    }
-
-    /// Full URL to the photo proxy endpoint on the local server.
-    func photoURL(chatId: Int64) -> URL? {
-        URL(string: "http://localhost:8000/users/\(userId)/photo?chat_id=\(chatId)")
     }
 
     // MARK: - Avatar
@@ -51,6 +45,5 @@ struct TelegramUser: Codable, Identifiable {
         case lastName = "last_name"
         case username
         case isBot = "is_bot"
-        case photoUrl = "photo_url"
     }
 }
