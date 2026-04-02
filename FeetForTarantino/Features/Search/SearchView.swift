@@ -41,8 +41,18 @@ struct SearchView: View {
     @ViewBuilder
     private var contentView: some View {
         if viewModel.isLoading {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        ShimmerCard(style: .search)
+                        Divider()
+                            .padding(.leading, 104)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .disabled(true)
+            .allowsHitTesting(false)
         } else if let error = viewModel.errorMessage {
             Text(error)
                 .foregroundStyle(.red)

@@ -76,7 +76,7 @@ struct RecommendationsView: View {
         ScrollView {
             VStack(spacing: 0) {
                 ForEach(0..<5, id: \.self) { _ in
-                    ShimmerSuggestionCard()
+                    ShimmerCard(style: .recommendations)
                     Divider()
                         .padding(.leading, 104)
                 }
@@ -205,118 +205,6 @@ struct RecommendationsView: View {
     }
 }
 
-// MARK: - Shimmer effect
-
-private struct ShimmerBand: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .overlay {
-                GeometryReader { geo in
-                    TimelineView(.animation) { ctx in
-                        let t = ctx.date.timeIntervalSinceReferenceDate
-                        let phase = CGFloat((t.truncatingRemainder(dividingBy: 1.4)) / 1.4)
-                        let bandWidth = geo.size.width * 0.45
-                        let offset = phase * (geo.size.width + bandWidth) - bandWidth
-
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: 0),
-                                .init(color: .white.opacity(0.35), location: 0.5),
-                                .init(color: .clear, location: 1)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .frame(width: bandWidth)
-                        .offset(x: offset)
-                    }
-                }
-                .clipped()
-            }
-    }
-}
-
-private extension View {
-    func shimmer() -> some View { modifier(ShimmerBand()) }
-}
-
-// MARK: - Shimmer card
-
-private struct ShimmerSuggestionCard: View {
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Poster
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.15))
-                .frame(width: 80, height: 120)
-                .shimmer()
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            VStack(alignment: .leading, spacing: 0) {
-                // Title — one line
-                Capsule()
-                    .fill(Color.secondary.opacity(0.15))
-                    .frame(height: 14)
-                    .shimmer()
-                    .clipShape(Capsule())
-
-                Spacer().frame(height: 10)
-
-                // Year
-                Capsule()
-                    .fill(Color.secondary.opacity(0.12))
-                    .frame(width: 50, height: 12)
-                    .shimmer()
-                    .clipShape(Capsule())
-
-                Spacer().frame(height: 8)
-
-                // Rating
-                Capsule()
-                    .fill(Color.secondary.opacity(0.12))
-                    .frame(width: 40, height: 12)
-                    .shimmer()
-                    .clipShape(Capsule())
-
-                Spacer().frame(height: 10)
-
-                // Description — three lines
-                VStack(alignment: .leading, spacing: 5) {
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.1))
-                        .frame(height: 11)
-                        .shimmer()
-                        .clipShape(Capsule())
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.1))
-                        .frame(height: 11)
-                        .shimmer()
-                        .clipShape(Capsule())
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.1))
-                        .frame(width: 90, height: 11)
-                        .shimmer()
-                        .clipShape(Capsule())
-                }
-
-                Spacer(minLength: 0)
-
-                Spacer().frame(height: 10)
-
-                // Add button placeholder — matches real button size
-                Capsule()
-                    .fill(Color.secondary.opacity(0.12))
-                    .frame(width: 72, height: 29)
-                    .shimmer()
-                    .clipShape(Capsule())
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 4)
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-    }
-}
 
 // MARK: - SuggestionCard
 
