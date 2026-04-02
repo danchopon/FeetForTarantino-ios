@@ -3,101 +3,169 @@ import SwiftUI
 struct RecommendationsView: View {
     @State private var viewModel = RecommendationsViewModel()
     @Environment(ChatStore.self) private var chatStore
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    TextField("Mood, genre, or \"like Inception\"…", text: $viewModel.query)
-                        .submitLabel(.search)
-                        .onSubmit { fetchIfReady() }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(.secondarySystemBackground))
-                        )
-
-                    Button(action: fetchIfReady) {
-                        Image(systemName: "sparkles")
-                            .font(.title3)
-                            .padding(14)
-                            .background(Color.accentColor)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .disabled(chatStore.selectedChat == nil || viewModel.isLoading)
+            contentArea
+                .animation(.easeInOut(duration: 0.4), value: viewModel.isLoading)
+                .animation(.easeInOut(duration: 0.4), value: viewModel.recommendation != nil)
+                .navigationTitle("For You")
+                .safeAreaInset(edge: .bottom) {
+                    bottomInputBar
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
-
-                if chatStore.chats.isEmpty {
-                    emptyState
-                } else if viewModel.isLoading {
-                    Spacer()
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text("Asking AI…")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                } else if let error = viewModel.errorMessage {
-                    Spacer()
-                    Text(error)
-                        .foregroundStyle(.red)
-                        .font(.subheadline)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                    Spacer()
-                } else if let rec = viewModel.recommendation {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            intentHeader(rec)
-                                .padding(.horizontal)
-                                .padding(.bottom, 12)
-
-                            ForEach(rec.suggestions) { suggestion in
-                                SuggestionCard(
-                                    suggestion: suggestion,
-                                    isAdded: viewModel.addedIds.contains(suggestion.id),
-                                    isAdding: viewModel.addingIds.contains(suggestion.id)
-                                ) {
-                                    guard let chatId = chatStore.selectedChat?.chatId else { return }
-                                    Task { await viewModel.addToWatchlist(suggestion, chatId: chatId) }
-                                }
-                                Divider()
-                                    .padding(.leading, 104)
-                            }
-                        }
-                        .padding(.top, 4)
-                    }
-                } else {
-                    Spacer()
-                    VStack(spacing: 12) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.secondary)
-                        Text("Tap ✦ to get AI recommendations\nbased on your group's history")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    Spacer()
+                .alert("Error", isPresented: Binding(
+                    get: { viewModel.addErrorMessage != nil },
+                    set: { if !$0 { viewModel.addErrorMessage = nil } }
+                )) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(viewModel.addErrorMessage ?? "")
                 }
-            }
-            .navigationTitle("For You")
-            .alert("Error", isPresented: Binding(
-                get: { viewModel.addErrorMessage != nil },
-                set: { if !$0 { viewModel.addErrorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(viewModel.addErrorMessage ?? "")
-            }
         }
     }
+
+    // MARK: - Content area
+
+    @ViewBuilder
+    private var contentArea: some View {
+        if chatStore.chats.isEmpty {
+            emptyState
+        } else if viewModel.isLoading {
+            shimmerLoadingCards
+                .transition(.opacity)
+        } else if let error = viewModel.errorMessage {
+            Text(error)
+                .foregroundStyle(.red)
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture { inputFocused = false }
+        } else if let rec = viewModel.recommendation {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    intentHeader(rec)
+                        .padding(.horizontal)
+                        .padding(.bottom, 12)
+
+                    ForEach(rec.suggestions) { suggestion in
+                        SuggestionCard(
+                            suggestion: suggestion,
+                            isAdded: viewModel.addedIds.contains(suggestion.id),
+                            isAdding: viewModel.addingIds.contains(suggestion.id)
+                        ) {
+                            guard let chatId = chatStore.selectedChat?.chatId else { return }
+                            Task { await viewModel.addToWatchlist(suggestion, chatId: chatId) }
+                        }
+                        Divider()
+                            .padding(.leading, 104)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .transition(.opacity)
+        } else {
+            idlePlaceholder
+        }
+    }
+
+    private var shimmerLoadingCards: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(0..<3, id: \.self) { _ in
+                    ShimmerSuggestionCard()
+                    Divider()
+                        .padding(.leading, 104)
+                }
+            }
+            .padding(.top, 4)
+        }
+        .disabled(true)
+        .allowsHitTesting(false)
+    }
+
+    private var idlePlaceholder: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 44, weight: .thin))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+            Text("What are you in the mood for?")
+                .font(.title3.weight(.medium))
+            Text("Describe a vibe, genre, or film")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { inputFocused = false }
+    }
+
+    // MARK: - Bottom input bar
+
+    private var bottomInputBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+
+                TextField("Mood, genre, film…", text: $viewModel.query)
+                    .focused($inputFocused)
+                    .submitLabel(.done)
+                    .onSubmit { fetchIfReady() }
+                    .disabled(viewModel.isLoading)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
+            .overlay(glowBorder)
+            .shadow(
+                color: viewModel.isLoading ? .purple.opacity(0.35) : .clear,
+                radius: 10
+            )
+            .animation(.easeInOut(duration: 0.4), value: viewModel.isLoading)
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+        }
+        .background(.background)
+    }
+
+    @ViewBuilder
+    private var glowBorder: some View {
+        if viewModel.isLoading {
+            TimelineView(.animation) { ctx in
+                let t = ctx.date.timeIntervalSinceReferenceDate
+                let angle = (t.truncatingRemainder(dividingBy: 2.5) / 2.5) * 360
+                RoundedRectangle(cornerRadius: 22)
+                    .strokeBorder(
+                        AngularGradient(
+                            colors: [.purple, .blue, .cyan, .teal, .pink, .purple],
+                            center: .center,
+                            startAngle: .degrees(angle),
+                            endAngle: .degrees(angle + 360)
+                        ),
+                        lineWidth: 2
+                    )
+            }
+            .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+        }
+    }
+
+    private func fetchIfReady() {
+        guard let chatId = chatStore.selectedChat?.chatId,
+              !viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        inputFocused = false
+        Task { await viewModel.fetchRecommendations(chatId: chatId) }
+    }
+
+    // MARK: - Helpers
 
     @ViewBuilder
     private func intentHeader(_ rec: Recommendation) -> some View {
@@ -121,7 +189,6 @@ struct RecommendationsView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Spacer()
             Image(systemName: "sparkles")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
@@ -132,16 +199,109 @@ struct RecommendationsView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Spacer()
         }
         .padding()
-    }
-
-    private func fetchIfReady() {
-        guard let chatId = chatStore.selectedChat?.chatId else { return }
-        Task { await viewModel.fetchRecommendations(chatId: chatId) }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+// MARK: - Shimmer effect
+
+private struct ShimmerBand: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                GeometryReader { geo in
+                    TimelineView(.animation) { ctx in
+                        let t = ctx.date.timeIntervalSinceReferenceDate
+                        let phase = CGFloat((t.truncatingRemainder(dividingBy: 1.4)) / 1.4)
+                        let bandWidth = geo.size.width * 0.45
+                        let offset = phase * (geo.size.width + bandWidth) - bandWidth
+
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .white.opacity(0.35), location: 0.5),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .frame(width: bandWidth)
+                        .offset(x: offset)
+                    }
+                }
+                .clipped()
+            }
+    }
+}
+
+private extension View {
+    func shimmer() -> some View { modifier(ShimmerBand()) }
+}
+
+// MARK: - Shimmer card
+
+private struct ShimmerSuggestionCard: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Poster
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.secondary.opacity(0.15))
+                .frame(width: 80, height: 120)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // Title — two lines
+                VStack(alignment: .leading, spacing: 6) {
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 14)
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(width: 130, height: 14)
+                }
+
+                Spacer().frame(height: 10)
+
+                // Year
+                Capsule()
+                    .fill(Color.secondary.opacity(0.12))
+                    .frame(width: 50, height: 12)
+
+                Spacer().frame(height: 8)
+
+                // Rating
+                Capsule()
+                    .fill(Color.secondary.opacity(0.12))
+                    .frame(width: 40, height: 12)
+
+                Spacer().frame(height: 10)
+
+                // Description — three lines
+                VStack(alignment: .leading, spacing: 5) {
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.1))
+                        .frame(height: 11)
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.1))
+                        .frame(height: 11)
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.1))
+                        .frame(width: 90, height: 11)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 4)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .shimmer()
+    }
+}
+
+// MARK: - SuggestionCard
 
 private struct SuggestionCard: View {
     let suggestion: Suggestion
