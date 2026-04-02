@@ -101,6 +101,98 @@ struct MovieService {
         }
     }
 
+    func fetchUsers(chatId: Int64) async throws -> [TelegramUser] {
+        let url = try makeURL(path: "/users", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([TelegramUser].self, from: data)
+    }
+
+    func fetchRandom(chatId: Int64) async throws -> Movie {
+        let url = try makeURL(path: "/random", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(Movie.self, from: data)
+    }
+
+    func fetchBasket(chatId: Int64) async throws -> [BasketEntry] {
+        let url = try makeURL(path: "/basket", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([BasketEntry].self, from: data)
+    }
+
+    func fetchMyBasket(chatId: Int64, userId: Int) async throws -> [Movie] {
+        let url = try makeURL(path: "/basket/my", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId)),
+            URLQueryItem(name: "user_id", value: String(userId))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([Movie].self, from: data)
+    }
+
+    func addToBasket(chatId: Int64, userId: Int, movieNum: Int) async throws {
+        let url = try makeURL(path: "/basket/add")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "chat_id": chatId,
+            "user_id": userId,
+            "movie_num": movieNum
+        ])
+        try await URLSession.shared.data(for: request)
+    }
+
+    func removeFromBasket(chatId: Int64, userId: Int) async throws {
+        let url = try makeURL(path: "/basket/remove", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId)),
+            URLQueryItem(name: "user_id", value: String(userId))
+        ])
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        try await URLSession.shared.data(for: request)
+    }
+
+    func clearBasket(chatId: Int64) async throws {
+        let url = try makeURL(path: "/basket/clear", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        try await URLSession.shared.data(for: request)
+    }
+
+    func fetchBasketRandom(chatId: Int64) async throws -> Movie {
+        let url = try makeURL(path: "/basket/random", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(Movie.self, from: data)
+    }
+
+    func fetchPoll(chatId: Int64, n: Int = 3) async throws -> [Movie] {
+        let url = try makeURL(path: "/poll", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId)),
+            URLQueryItem(name: "n", value: String(n))
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([Movie].self, from: data)
+    }
+
+    func pickPollRandom(chatId: Int64, movieNums: [Int]) async throws -> Movie {
+        let numsString = movieNums.map(String.init).joined(separator: ",")
+        let url = try makeURL(path: "/poll/rpick", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId)),
+            URLQueryItem(name: "movie_nums", value: numsString)
+        ])
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(Movie.self, from: data)
+    }
+
     func addMovie(chatId: Int64, movie: Movie) async throws {
         let url = try makeURL(path: "/movies")
         var request = URLRequest(url: url)
