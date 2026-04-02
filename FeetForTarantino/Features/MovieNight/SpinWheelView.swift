@@ -176,6 +176,7 @@ struct SpinWheelView: View {
 
 struct WheelCanvas: View {
     let items: [WheelItem]
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Canvas { ctx, size in
@@ -232,14 +233,15 @@ struct WheelCanvas: View {
                 currentAngle = endAngle
             }
 
-            // Center cap
+            // Center cap — adapts to dark/light mode
             let capR: CGFloat = 12
             let capPath = Path(ellipseIn: CGRect(
                 x: center.x - capR, y: center.y - capR,
                 width: capR * 2, height: capR * 2
             ))
-            ctx.fill(capPath, with: .color(Color(.systemBackground)))
-            ctx.stroke(capPath, with: .color(.white.opacity(0.6)), lineWidth: 1)
+            let capColor = colorScheme == .dark ? Color.black : Color.white
+            ctx.fill(capPath, with: .color(capColor))
+            ctx.stroke(capPath, with: .color(capColor.opacity(0.5)), lineWidth: 1)
         }
     }
 }

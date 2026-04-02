@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("username") private var username: String = ""
-    @AppStorage("appearance") private var appearance: String = "system"
     @Environment(ChatStore.self) private var chatStore
     @State private var showAddGroup = false
     @State private var newGroupId: String = ""
@@ -13,15 +12,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(header: Text("Appearance")) {
-                    Picker("Theme", selection: $appearance) {
-                        Text("System").tag("system")
-                        Text("Light").tag("light")
-                        Text("Dark").tag("dark")
-                    }
-                    .pickerStyle(.segmented)
-                }
-
                 Section(
                     header: Text("Your Name"),
                     footer: Text("Used when adding or marking movies as watched.")
