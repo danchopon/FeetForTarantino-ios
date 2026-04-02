@@ -66,10 +66,6 @@ fastlane/test_output
 .AppleDouble
 .LSOverride
 
-# Claude Code
-.mcp.json
-.claude/
-
 # Xcode derived data & archives
 DerivedData/
 *.xcarchive
@@ -81,3 +77,7 @@ DerivedData/
 # Environment / secrets
 .env
 *.pem
+
+.claude/settings.local.json
+.mcp.json
+.vscode/settings.json
