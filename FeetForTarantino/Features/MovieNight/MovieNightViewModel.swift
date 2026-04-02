@@ -1,5 +1,27 @@
 import Foundation
 import Observation
+import SwiftUI
+
+struct WheelItem: Identifiable {
+    let id: Int
+    let title: String
+    let votes: Int
+    let percentage: Double
+    let color: Color
+}
+
+private let wheelPalette: [Color] = [
+    Color(red: 0.94, green: 0.33, blue: 0.31),
+    Color(red: 0.98, green: 0.57, blue: 0.20),
+    Color(red: 0.95, green: 0.81, blue: 0.25),
+    Color(red: 0.30, green: 0.75, blue: 0.40),
+    Color(red: 0.25, green: 0.62, blue: 0.92),
+    Color(red: 0.55, green: 0.36, blue: 0.80),
+    Color(red: 0.90, green: 0.40, blue: 0.65),
+    Color(red: 0.20, green: 0.72, blue: 0.72),
+    Color(red: 0.40, green: 0.50, blue: 0.85),
+    Color(red: 0.20, green: 0.80, blue: 0.78)
+]
 
 @Observable
 final class MovieNightViewModel {
@@ -125,6 +147,38 @@ final class MovieNightViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Wheel items
+
+    var wheelItems: [WheelItem] {
+        if !allBasket.isEmpty {
+            var movieOrder: [Int] = []
+            var movieDict: [Int: (Movie, Int)] = [:]
+            for entry in allBasket {
+                if movieDict[entry.movie.id] == nil {
+                    movieOrder.append(entry.movie.id)
+                    movieDict[entry.movie.id] = (entry.movie, 0)
+                }
+                movieDict[entry.movie.id]?.1 += 1
+            }
+            let items = movieOrder.compactMap { movieDict[$0] }
+            let total = items.reduce(0) { $0 + $1.1 }
+            return items.enumerated().map { index, item in
+                WheelItem(id: item.0.id, title: item.0.title, votes: item.1,
+                          percentage: total > 0 ? Double(item.1) / Double(total) : 1.0 / Double(items.count),
+                          color: wheelPalette[index % wheelPalette.count])
+            }
+        }
+        if !pollMovies.isEmpty {
+            let pct = 1.0 / Double(pollMovies.count)
+            return pollMovies.enumerated().map { index, movie in
+                WheelItem(id: movie.id, title: movie.title, votes: 1,
+                          percentage: pct,
+                          color: wheelPalette[index % wheelPalette.count])
+            }
+        }
+        return []
     }
 
     // MARK: - Helpers

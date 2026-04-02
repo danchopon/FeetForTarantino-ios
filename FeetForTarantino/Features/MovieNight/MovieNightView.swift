@@ -4,6 +4,7 @@ struct MovieNightView: View {
     @State private var viewModel = MovieNightViewModel()
     @Environment(ChatStore.self) private var chatStore
     @State private var showClearGroupConfirm = false
+    @State private var showSpinWheel = false
 
     private var chatId: Int64? { chatStore.selectedChat?.chatId }
     private var selectedUser: TelegramUser? {
@@ -49,6 +50,9 @@ struct MovieNightView: View {
             }
             .sheet(item: $viewModel.pickedMovie) { movie in
                 RandomPickSheet(movie: movie, chatId: chatId)
+            }
+            .sheet(isPresented: $showSpinWheel) {
+                SpinWheelView(items: viewModel.wheelItems)
             }
             .confirmationDialog("Clear group basket?", isPresented: $showClearGroupConfirm, titleVisibility: .visible) {
                 Button("Clear", role: .destructive) {
@@ -379,6 +383,15 @@ struct MovieNightView: View {
             } label: {
                 Label("Create poll (3 movies)", systemImage: "list.bullet.clipboard")
             }
+
+            Divider()
+
+            Button {
+                showSpinWheel = true
+            } label: {
+                Label("Spin the Wheel", systemImage: "circle.grid.cross")
+            }
+            .disabled(viewModel.wheelItems.isEmpty)
         } label: {
             Image(systemName: "dice")
         }
