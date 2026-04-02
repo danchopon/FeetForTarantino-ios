@@ -183,6 +183,13 @@ final class MovieNightViewModel {
 
     // MARK: - Helpers
 
+    /// Number of basket picks per userId.
+    var basketCountByUser: [Int: Int] {
+        allBasket.reduce(into: [:]) { counts, entry in
+            counts[entry.userId, default: 0] += 1
+        }
+    }
+
     func isInMyBasket(_ movie: Movie) -> Bool {
         myBasket.contains(where: { $0.id == movie.id })
     }
