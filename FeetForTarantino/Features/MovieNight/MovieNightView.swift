@@ -12,7 +12,7 @@ struct MovieNightView: View {
     }
     private var members: [TelegramUser] {
         guard let id = chatId else { return [] }
-        return chatStore.members[id] ?? []
+        return (chatStore.members[id] ?? []).filter { !$0.isBot }
     }
 
     var body: some View {
@@ -128,21 +128,18 @@ struct MovieNightView: View {
             VStack(spacing: 4) {
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.accentColor : Color(.secondarySystemBackground))
+                        .fill(isSelected ? user.avatarColor : user.avatarColor.opacity(0.25))
                         .frame(width: 52, height: 52)
 
-                    if let id = chatId, let photoURL = user.photoURL(chatId: id) {
-                        AsyncImage(url: photoURL) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Image(systemName: "person.fill")
-                                .foregroundStyle(isSelected ? .white : .secondary)
-                        }
-                        .frame(width: 44, height: 44)
-                        .clipShape(Circle())
-                    } else {
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(isSelected ? .white : .secondary)
+                    Image(systemName: user.avatarIcon)
+                        .font(.system(size: 22))
+                        .foregroundStyle(isSelected ? .white : user.avatarColor)
+                }
+                .overlay {
+                    if isSelected {
+                        Circle()
+                            .strokeBorder(user.avatarColor, lineWidth: 2.5)
+                            .frame(width: 56, height: 56)
                     }
                 }
 
