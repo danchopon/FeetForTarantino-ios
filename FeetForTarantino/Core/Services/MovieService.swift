@@ -25,6 +25,54 @@ enum MovieServiceError: LocalizedError {
 }
 
 struct MovieService {
+
+    // MARK: - Logging wrappers (DEBUG only)
+
+    /// GET – returns decoded data.
+    private func fetch(_ url: URL) async throws -> Data {
+        let start = Date()
+        let (data, response) = try await URLSession.shared.data(from: url)
+        #if DEBUG
+        logResponse(method: "GET", url: url, requestBody: nil, data: data, response: response, duration: -start.timeIntervalSinceNow)
+        #endif
+        return data
+    }
+
+    /// POST / PATCH / DELETE – returns (data, response).
+    @discardableResult
+    private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        let start = Date()
+        let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
+        logResponse(method: request.httpMethod ?? "?", url: request.url, requestBody: request.httpBody, data: data, response: response, duration: -start.timeIntervalSinceNow)
+        #endif
+        return (data, response)
+    }
+
+#if DEBUG
+    private func logResponse(method: String, url: URL?, requestBody: Data?, data: Data, response: URLResponse, duration: TimeInterval) {
+        let urlString = url?.absoluteString ?? "?"
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let ms = Int(duration * 1000)
+        let size = data.count < 1024
+            ? "\(data.count) B"
+            : String(format: "%.1f KB", Double(data.count) / 1024)
+
+        var lines = ["[NET] → \(method) \(urlString)"]
+        if let body = requestBody, let str = String(data: body, encoding: .utf8) {
+            lines.append("      \(str)")
+        }
+        lines.append("[NET] ← \(status)  \(ms)ms  \(size)")
+        if let str = String(data: data, encoding: .utf8), !str.isEmpty {
+            let preview = str.count > 800 ? str.prefix(800) + "…" : Substring(str)
+            lines.append("      \(preview)")
+        }
+        print(lines.joined(separator: "\n"))
+    }
+#endif
+
+    // MARK: - URL builder
+
     private func makeURL(path: String, queryItems: [URLQueryItem] = []) throws -> URL {
         var components = URLComponents()
         components.scheme = "http"
@@ -44,7 +92,7 @@ struct MovieService {
             queryItems.append(URLQueryItem(name: "status", value: status))
         }
         let url = try makeURL(path: "/movies", queryItems: queryItems)
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode([Movie].self, from: data)
     }
 
@@ -53,7 +101,7 @@ struct MovieService {
             URLQueryItem(name: "q", value: query),
             URLQueryItem(name: "page", value: String(page))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode(SearchResponse.self, from: data)
     }
 
@@ -62,7 +110,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId)),
             URLQueryItem(name: "q", value: query)
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode(Recommendation.self, from: data)
     }
 
@@ -70,7 +118,7 @@ struct MovieService {
         let url = try makeURL(path: "/stats", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode(Stats.self, from: data)
     }
 
@@ -80,7 +128,7 @@ struct MovieService {
         ])
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await perform(request)
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
             throw MovieServiceError.notFound
         }
@@ -95,7 +143,7 @@ struct MovieService {
         request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: ["watched_by": watchedBy])
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await perform(request)
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 400 {
             throw MovieServiceError.notFound
         }
@@ -105,7 +153,7 @@ struct MovieService {
         let url = try makeURL(path: "/users", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode([TelegramUser].self, from: data)
     }
 
@@ -113,7 +161,7 @@ struct MovieService {
         let url = try makeURL(path: "/random", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode(Movie.self, from: data)
     }
 
@@ -121,7 +169,7 @@ struct MovieService {
         let url = try makeURL(path: "/basket", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode([BasketEntry].self, from: data)
     }
 
@@ -130,7 +178,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId)),
             URLQueryItem(name: "user_id", value: String(userId))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode([Movie].self, from: data)
     }
 
@@ -144,7 +192,7 @@ struct MovieService {
             "user_id": userId,
             "movie_num": movieNum
         ])
-        try await URLSession.shared.data(for: request)
+        try await perform(request)
     }
 
     func removeFromBasket(chatId: Int64, userId: Int) async throws {
@@ -154,7 +202,7 @@ struct MovieService {
         ])
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        try await URLSession.shared.data(for: request)
+        try await perform(request)
     }
 
     func clearBasket(chatId: Int64) async throws {
@@ -163,14 +211,14 @@ struct MovieService {
         ])
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        try await URLSession.shared.data(for: request)
+        try await perform(request)
     }
 
     func fetchBasketRandom(chatId: Int64) async throws -> Movie {
         let url = try makeURL(path: "/basket/random", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode(Movie.self, from: data)
     }
 
@@ -179,7 +227,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId)),
             URLQueryItem(name: "n", value: String(n))
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode([Movie].self, from: data)
     }
 
@@ -189,7 +237,7 @@ struct MovieService {
             URLQueryItem(name: "chat_id", value: String(chatId)),
             URLQueryItem(name: "movie_nums", value: numsString)
         ])
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let data = try await fetch(url)
         return try JSONDecoder().decode(Movie.self, from: data)
     }
 
@@ -212,7 +260,7 @@ struct MovieService {
         if let genres = movie.genres { body["genres"] = genres }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await perform(request)
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 409 {
             throw MovieServiceError.alreadyExists
         }
