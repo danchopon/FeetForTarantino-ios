@@ -135,12 +135,7 @@ struct MovieNightView: View {
         let isOnline = presenceManager.onlineUserIds.contains(user.userId)
         let basketCount = viewModel.basketCountByUser[user.userId] ?? 0
 
-        return Button {
-            guard let id = chatId else { return }
-            chatStore.selectUser(user, for: id)
-            Task { await viewModel.loadAll(chatId: id, userId: user.userId) }
-        } label: {
-            VStack(spacing: 4) {
+        return VStack(spacing: 4) {
                 ZStack(alignment: .bottomTrailing) {
                     // Avatar
                     ZStack {
@@ -185,9 +180,7 @@ struct MovieNightView: View {
                     .font(.caption2)
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .lineLimit(1)
-            }
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Browse section

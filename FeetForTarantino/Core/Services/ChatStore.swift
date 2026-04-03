@@ -32,12 +32,22 @@ final class ChatStore {
               let chatId = Int64(idItem.value ?? ""),
               let name = nameItem.value?.removingPercentEncoding
         else { return }
-        
+
         if !chats.contains(where: { $0.chatId == chatId }) {
             chats.append(SavedChat(chatId: chatId, name: name))
             save()
         }
         selectedChat = chats.first(where: { $0.chatId == chatId })
+
+        if let userIdStr = components.queryItems?.first(where: { $0.name == "user_id" })?.value,
+           let userId = Int(userIdStr) {
+            selectedUserIds[chatId] = userId
+            saveUserIds()
+        }
+        if let userName = components.queryItems?.first(where: { $0.name == "user_name" })?.value?.removingPercentEncoding,
+           !userName.isEmpty {
+            UserDefaults.standard.set(userName, forKey: "username")
+        }
     }
 
     func select(_ chat: SavedChat) {
