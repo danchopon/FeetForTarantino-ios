@@ -4,6 +4,7 @@ import SwiftUI
 struct FeetForTarantinoApp: App {
     @State private var chatStore = ChatStore()
     @State private var presenceManager = PresenceManager()
+    @State private var webSocketManager = WebSocketManager()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -11,6 +12,7 @@ struct FeetForTarantinoApp: App {
             ContentView()
                 .environment(chatStore)
                 .environment(presenceManager)
+                .environment(webSocketManager)
                 .onOpenURL { url in chatStore.handle(url) }
                 .onChange(of: scenePhase) { _, phase in
                     restartPresenceIfNeeded(phase: phase)
@@ -27,8 +29,10 @@ struct FeetForTarantinoApp: App {
               let userId = chatStore.selectedUser(for: chat.chatId)?.userId
         else {
             presenceManager.stop()
+            webSocketManager.disconnect()
             return
         }
         presenceManager.start(chatId: chat.chatId, userId: userId)
+        webSocketManager.connect(chatId: chat.chatId)
     }
 }

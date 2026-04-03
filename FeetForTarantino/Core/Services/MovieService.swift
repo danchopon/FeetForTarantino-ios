@@ -91,15 +91,34 @@ struct MovieService {
 
     private func makeURL(path: String, queryItems: [URLQueryItem] = []) throws -> URL {
         var components = URLComponents()
+        #if DEBUG
         components.scheme = "http"
         components.host = "localhost"
         components.port = 8000
+        #else
+        components.scheme = "https"
+        components.host = "feetfortarantino.onrender.com"
+        #endif
         components.path = path
         if !queryItems.isEmpty {
             components.queryItems = queryItems
         }
         guard let url = components.url else { throw URLError(.badURL) }
         return url
+    }
+
+    static func webSocketURL(chatId: Int64) -> URL? {
+        var components = URLComponents()
+        #if DEBUG
+        components.scheme = "ws"
+        components.host = "localhost"
+        components.port = 8000
+        #else
+        components.scheme = "wss"
+        components.host = "feetfortarantino.onrender.com"
+        #endif
+        components.path = "/ws/\(chatId)"
+        return components.url
     }
 
     // MARK: - Presence

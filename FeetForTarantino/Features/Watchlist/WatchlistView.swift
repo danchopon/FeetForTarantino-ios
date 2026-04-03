@@ -24,6 +24,7 @@ struct WatchlistView: View {
     @State private var viewModel = WatchlistViewModel()
     @State private var layoutMode: LayoutMode = .list
     @Environment(ChatStore.self) private var chatStore
+    @Environment(WebSocketManager.self) private var wsManager
 
     var body: some View {
         NavigationStack {
@@ -78,6 +79,10 @@ struct WatchlistView: View {
                 await viewModel.fetchMovies(chatId: chat.chatId)
             }
             .onChange(of: viewModel.statusFilter) { _, _ in
+                guard let chat = chatStore.selectedChat else { return }
+                Task { await viewModel.fetchMovies(chatId: chat.chatId) }
+            }
+            .onChange(of: wsManager.movieEventCount) { _, _ in
                 guard let chat = chatStore.selectedChat else { return }
                 Task { await viewModel.fetchMovies(chatId: chat.chatId) }
             }

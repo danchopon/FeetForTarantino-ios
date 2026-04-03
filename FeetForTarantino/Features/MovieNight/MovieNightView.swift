@@ -13,6 +13,7 @@ struct MovieNightView: View {
     @State private var showSpinWheel = false
     @Environment(ChatStore.self) private var chatStore
     @Environment(PresenceManager.self) private var presenceManager
+    @Environment(WebSocketManager.self) private var wsManager
 
     private var chatId: Int64? { chatStore.selectedChat?.chatId }
     private var selectedUser: TelegramUser? {
@@ -42,6 +43,10 @@ struct MovieNightView: View {
                 async let m: Void = chatStore.fetchMembers(for: id)
                 async let d: Void = viewModel.loadAll(chatId: id, userId: selectedUser?.userId)
                 _ = await (m, d)
+            }
+            .onChange(of: wsManager.basketEventCount) { _, _ in
+                guard let id = chatId, let userId = selectedUser?.userId else { return }
+                Task { await viewModel.refreshMyBasket(chatId: id, userId: userId) }
             }
             .alert("Error", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
