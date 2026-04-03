@@ -117,3 +117,5 @@ teams/
 .idea/
 *.swp
 *.swo
+
+/scratch
