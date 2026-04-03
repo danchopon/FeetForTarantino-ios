@@ -176,10 +176,16 @@ struct MovieNightView: View {
                     }
                 }
 
-                Text(user.firstName)
-                    .font(.caption2)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
-                    .lineLimit(1)
+                if isSelected {
+                    Text("You")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                } else {
+                    Text(user.firstName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
         }
     }
 
@@ -188,6 +194,23 @@ struct MovieNightView: View {
     private var browseSection: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
+                if selectedUser == nil {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.crop.circle.badge.questionmark")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                        Text("Send **/app** in your Telegram group to identify yourself and add movies to the basket.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
+
                 if viewModel.isLoading {
                     ProgressView().padding(.top, 40)
                 } else if viewModel.toWatchMovies.isEmpty {
@@ -266,7 +289,7 @@ struct MovieNightView: View {
                     myPicksStrip(user: user, chatId: id)
                         .padding(.top, 12)
                 } else {
-                    Text("Select who you are above to manage your picks.")
+                    Text("Send /app in Telegram to manage your picks.")
                         .font(.subheadline).foregroundStyle(.secondary)
                         .padding()
                 }

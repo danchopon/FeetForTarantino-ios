@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("username") private var username: String = ""
     @Environment(ChatStore.self) private var chatStore
     @State private var showAddGroup = false
     @State private var newGroupId: String = ""
@@ -13,14 +12,6 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 Section(
-                    header: Text("Your Name"),
-                    footer: Text("Used when adding or marking movies as watched.")
-                ) {
-                    TextField("Your name", text: $username)
-                        .autocorrectionDisabled()
-                }
-
-                Section(
                     header: Text("Connected Groups"),
                     footer: Text("Swipe left to remove a group. Or send /app in your Telegram group to connect automatically.")
                 ) {
@@ -31,9 +22,11 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(chat.name)
                                     .font(.body)
-                                Text(String(chat.chatId))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                if let user = chatStore.selectedUser(for: chat.chatId) {
+                                    Text(user.firstName)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                             Spacer()
                             if chat.id == chatStore.selectedChat?.id {
