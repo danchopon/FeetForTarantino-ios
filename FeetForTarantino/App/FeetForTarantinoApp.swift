@@ -3,6 +3,14 @@ import SwiftUI
 @main
 struct FeetForTarantinoApp: App {
     @State private var chatStore = ChatStore()
+
+    init() {
+        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
+            UserDefaults.standard.removeObject(forKey: "saved_chats")
+            UserDefaults.standard.removeObject(forKey: "selected_user_ids")
+            UserDefaults.standard.removeObject(forKey: "username")
+        }
+    }
     @State private var presenceManager = PresenceManager()
     @State private var webSocketManager = WebSocketManager()
     @Environment(\.scenePhase) private var scenePhase
