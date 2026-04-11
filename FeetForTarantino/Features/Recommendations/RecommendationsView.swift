@@ -57,7 +57,8 @@ struct RecommendationsView: View {
                             isAdding: viewModel.addingIds.contains(suggestion.id)
                         ) {
                             guard let chatId = chatStore.selectedChat?.chatId else { return }
-                            Task { await viewModel.addToWatchlist(suggestion, chatId: chatId) }
+                            let name = chatStore.sessions[chatId]?.userName ?? "iOS"
+                            Task { await viewModel.addToWatchlist(suggestion, chatId: chatId, addedBy: name) }
                         }
                         Divider()
                             .padding(.leading, 104)
@@ -162,7 +163,9 @@ struct RecommendationsView: View {
         guard let chatId = chatStore.selectedChat?.chatId,
               !viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         inputFocused = false
-        Task { await viewModel.fetchRecommendations(chatId: chatId) }
+        let token = chatStore.sessionToken(for: chatId)
+        let name = chatStore.sessions[chatId]?.userName ?? "iOS"
+        Task { await viewModel.fetchRecommendations(chatId: chatId, sessionToken: token, userName: name) }
     }
 
     // MARK: - Helpers

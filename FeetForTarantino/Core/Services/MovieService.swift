@@ -15,20 +15,28 @@ struct SearchResponse: Codable {
 enum MovieServiceError: LocalizedError {
     case alreadyExists
     case notFound
+    case unauthorized
+    case tokenExpired
 
     var errorDescription: String? {
         switch self {
         case .alreadyExists: return "Movie already in watchlist"
         case .notFound: return "Movie not found"
+        case .unauthorized: return "Session expired. Open the app from Telegram to log in again."
+        case .tokenExpired: return "This link has expired. Tap /app in Telegram again."
         }
     }
 }
 
 struct MovieService {
+    var sessionToken: String = ""
+
+    init(sessionToken: String = "") {
+        self.sessionToken = sessionToken
+    }
 
     // MARK: - Logging wrappers (DEBUG only)
 
-    /// Decode helper — logs the endpoint and raw body on DecodingError.
     private func decode<T: Decodable>(_ type: T.Type, from data: Data, source: URL) throws -> T {
         do {
             return try JSONDecoder().decode(type, from: data)
@@ -44,24 +52,38 @@ struct MovieService {
         }
     }
 
-    /// GET – returns raw data.
+    /// GET – returns raw data. Adds Authorization header and checks for 401.
     private func fetch(_ url: URL) async throws -> Data {
-        let start = Date()
-        let (data, response) = try await URLSession.shared.data(from: url)
-        #if DEBUG
-        logResponse(method: "GET", url: url, requestBody: nil, data: data, response: response, duration: -start.timeIntervalSinceNow)
-        #endif
-        return data
-    }
-
-    /// POST / PATCH / DELETE – returns (data, response).
-    @discardableResult
-    private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        var request = URLRequest(url: url)
+        if !sessionToken.isEmpty {
+            request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+        }
         let start = Date()
         let (data, response) = try await URLSession.shared.data(for: request)
         #if DEBUG
-        logResponse(method: request.httpMethod ?? "?", url: request.url, requestBody: request.httpBody, data: data, response: response, duration: -start.timeIntervalSinceNow)
+        logResponse(method: "GET", url: url, requestBody: nil, data: data, response: response, duration: -start.timeIntervalSinceNow)
         #endif
+        if let http = response as? HTTPURLResponse, http.statusCode == 401 {
+            throw MovieServiceError.unauthorized
+        }
+        return data
+    }
+
+    /// POST / PATCH / DELETE – adds Authorization header and checks for 401.
+    @discardableResult
+    private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        var req = request
+        if !sessionToken.isEmpty {
+            req.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+        }
+        let start = Date()
+        let (data, response) = try await URLSession.shared.data(for: req)
+        #if DEBUG
+        logResponse(method: req.httpMethod ?? "?", url: req.url, requestBody: req.httpBody, data: data, response: response, duration: -start.timeIntervalSinceNow)
+        #endif
+        if let http = response as? HTTPURLResponse, http.statusCode == 401 {
+            throw MovieServiceError.unauthorized
+        }
         return (data, response)
     }
 
@@ -107,7 +129,7 @@ struct MovieService {
         return url
     }
 
-    static func webSocketURL(chatId: Int64) -> URL? {
+    static func webSocketURL(chatId: Int64, sessionToken: String) -> URL? {
         var components = URLComponents()
         #if DEBUG
         components.scheme = "ws"
@@ -118,7 +140,29 @@ struct MovieService {
         components.host = "feetfortarantino.onrender.com"
         #endif
         components.path = "/ws/\(chatId)"
+        if !sessionToken.isEmpty {
+            components.queryItems = [URLQueryItem(name: "session_token", value: sessionToken)]
+        }
         return components.url
+    }
+
+    // MARK: - Auth
+
+    func exchangeToken(_ token: String) async throws -> ExchangeResponse {
+        let url = try makeURL(path: "/auth/exchange")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["token": token])
+        let start = Date()
+        let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
+        logResponse(method: "POST", url: url, requestBody: request.httpBody, data: data, response: response, duration: -start.timeIntervalSinceNow)
+        #endif
+        if let http = response as? HTTPURLResponse, http.statusCode == 404 {
+            throw MovieServiceError.tokenExpired
+        }
+        return try decode(ExchangeResponse.self, from: data, source: url)
     }
 
     // MARK: - Presence
@@ -193,8 +237,7 @@ struct MovieService {
         }
     }
 
-    func markWatched(movieId: Int, chatId: Int64) async throws {
-        let watchedBy = UserDefaults.standard.string(forKey: "username").flatMap { $0.isEmpty ? nil : $0 } ?? "iOS"
+    func markWatched(movieId: Int, chatId: Int64, watchedBy: String) async throws {
         let url = try makeURL(path: "/movies/\(movieId)/watched", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId))
         ])
@@ -206,6 +249,26 @@ struct MovieService {
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 400 {
             throw MovieServiceError.notFound
         }
+    }
+
+    func unwatchMovie(movieId: Int, chatId: Int64) async throws {
+        let url = try makeURL(path: "/movies/\(movieId)/unwatch", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        try await perform(request)
+    }
+
+    func renameMovie(movieId: Int, chatId: Int64, newTitle: String) async throws {
+        let url = try makeURL(path: "/movies/\(movieId)/rename", queryItems: [
+            URLQueryItem(name: "chat_id", value: String(chatId))
+        ])
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["new_title": newTitle])
+        try await perform(request)
     }
 
     func fetchUsers(chatId: Int64) async throws -> [TelegramUser] {
@@ -256,7 +319,7 @@ struct MovieService {
         try await perform(request)
     }
 
-    func removeFromBasket(chatId: Int64, userId: Int) async throws {
+    func removeFromBasket(chatId: Int64, userId: Int, movieNums: [Int]? = nil) async throws {
         let url = try makeURL(path: "/basket/remove", queryItems: [
             URLQueryItem(name: "chat_id", value: String(chatId)),
             URLQueryItem(name: "user_id", value: String(userId))
@@ -264,8 +327,9 @@ struct MovieService {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // movie_nums=null clears the entire user's basket
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["movie_nums": NSNull()])
+        if let nums = movieNums {
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["movie_nums": nums])
+        }
         try await perform(request)
     }
 
@@ -305,23 +369,25 @@ struct MovieService {
         return try decode(Movie.self, from: data, source: url)
     }
 
-    func addMovie(chatId: Int64, movie: Movie) async throws {
+    func addMovie(chatId: Int64, movie: Movie, addedBy: String) async throws {
         let url = try makeURL(path: "/movies")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let username = UserDefaults.standard.string(forKey: "username").flatMap { $0.isEmpty ? nil : $0 } ?? "iOS"
         var body: [String: Any] = [
             "chat_id": chatId,
             "title": movie.title,
-            "added_by": username
+            "added_by": addedBy
         ]
         if let tmdbId = movie.tmdbId { body["tmdb_id"] = tmdbId }
         if let year = movie.year { body["year"] = year }
         if let rating = movie.rating { body["rating"] = rating }
         if let posterPath = movie.posterPath { body["poster_path"] = posterPath }
         if let genres = movie.genres { body["genres"] = genres }
+        if let overview = movie.overview { body["overview"] = overview }
+        if let runtime = movie.runtime { body["runtime"] = runtime }
+        if let director = movie.director { body["director"] = director }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (_, response) = try await perform(request)

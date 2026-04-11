@@ -212,8 +212,7 @@ struct ChatStoreTests {
 
     init() {
         UserDefaults.standard.removeObject(forKey: "saved_chats")
-        UserDefaults.standard.removeObject(forKey: "selected_user_ids")
-        UserDefaults.standard.removeObject(forKey: "username")
+        UserDefaults.standard.removeObject(forKey: "chat_sessions")
     }
 
     private func deepLink(chatId: Int64 = 111, name: String = "Club",
@@ -290,20 +289,6 @@ struct ChatStoreTests {
         #expect(store.chats.isEmpty)
     }
 
-    @Test func handleWithUserNameSavesToUserDefaults() {
-        let store = ChatStore()
-        store.handle(deepLink(userName: "Tarantino"))
-        #expect(UserDefaults.standard.string(forKey: "username") == "Tarantino")
-        UserDefaults.standard.removeObject(forKey: "username")
-    }
-
-    @Test func handleEmptyUserNameNotSaved() {
-        let store = ChatStore()
-        UserDefaults.standard.removeObject(forKey: "username")
-        store.handle(deepLink(userName: ""))
-        #expect(UserDefaults.standard.string(forKey: "username") == nil)
-    }
-
     @Test func removeDeselectsRemovedChat() {
         let store = ChatStore()
         store.handle(deepLink(chatId: 111, name: "A"))
@@ -346,11 +331,10 @@ struct ChatStoreTests {
         #expect(store.selectedUser(for: 111) == nil)
     }
 
-    @Test func selectedUserReturnsNilWhenMembersNotLoaded() {
+    @Test func selectedUserReturnsNilWhenNoSession() {
         let store = ChatStore()
         store.handle(deepLink(chatId: 111, name: "A"))
-        // No members in cache — selectedUser must return nil even if user_id was stored
-        store.handle(deepLink(chatId: 111, name: "A", userId: 42))
+        // No session created via /chat URL — selectedUser must return nil
         #expect(store.selectedUser(for: 111) == nil)
     }
 }

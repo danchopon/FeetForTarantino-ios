@@ -14,11 +14,14 @@ class SearchViewModel {
 
     private var currentPage = 1
     private var totalPages = 1
-    private let service = MovieService()
+    private var currentSessionToken: String = ""
+
+    private var service: MovieService { MovieService(sessionToken: currentSessionToken) }
 
     var canLoadMore: Bool { currentPage < totalPages && !isLoadingMore && !isLoading }
 
-    func search() async {
+    func search(sessionToken: String) async {
+        currentSessionToken = sessionToken
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 
@@ -55,11 +58,12 @@ class SearchViewModel {
         isLoadingMore = false
     }
 
-    func addMovie(_ movie: Movie, chatId: Int64) async {
+    func addMovie(_ movie: Movie, chatId: Int64, sessionToken: String, addedBy: String) async {
+        currentSessionToken = sessionToken
         addingMovieIds.insert(movie.id)
         addErrorMessage = nil
         do {
-            try await service.addMovie(chatId: chatId, movie: movie)
+            try await service.addMovie(chatId: chatId, movie: movie, addedBy: addedBy)
             addedMovieIds.insert(movie.id)
         } catch {
             addErrorMessage = error.localizedDescription

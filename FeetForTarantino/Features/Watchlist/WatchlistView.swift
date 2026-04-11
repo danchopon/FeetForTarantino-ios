@@ -76,15 +76,31 @@ struct WatchlistView: View {
             }
             .task(id: chatStore.selectedChat?.chatId) {
                 guard let chat = chatStore.selectedChat else { return }
-                await viewModel.fetchMovies(chatId: chat.chatId)
+                await viewModel.fetchMovies(
+                    chatId: chat.chatId,
+                    sessionToken: chatStore.sessionToken(for: chat.chatId),
+                    userName: chatStore.sessions[chat.chatId]?.userName ?? "iOS"
+                )
             }
             .onChange(of: viewModel.statusFilter) { _, _ in
                 guard let chat = chatStore.selectedChat else { return }
-                Task { await viewModel.fetchMovies(chatId: chat.chatId) }
+                Task {
+                    await viewModel.fetchMovies(
+                        chatId: chat.chatId,
+                        sessionToken: chatStore.sessionToken(for: chat.chatId),
+                        userName: chatStore.sessions[chat.chatId]?.userName ?? "iOS"
+                    )
+                }
             }
             .onChange(of: wsManager.movieEventCount) { _, _ in
                 guard let chat = chatStore.selectedChat else { return }
-                Task { await viewModel.fetchMovies(chatId: chat.chatId) }
+                Task {
+                    await viewModel.fetchMovies(
+                        chatId: chat.chatId,
+                        sessionToken: chatStore.sessionToken(for: chat.chatId),
+                        userName: chatStore.sessions[chat.chatId]?.userName ?? "iOS"
+                    )
+                }
             }
         }
     }

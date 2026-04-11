@@ -42,23 +42,28 @@ class RecommendationsViewModel {
     var addingIds: Set<Int> = []
     var addErrorMessage: String?
 
-    private let service = MovieService()
+    private var currentSessionToken: String = ""
+    private var currentUserName: String = "iOS"
 
-    func fetchRecommendations(chatId: Int64) async {
+    private var service: MovieService { MovieService(sessionToken: currentSessionToken) }
+
+    func fetchRecommendations(chatId: Int64, sessionToken: String, userName: String) async {
+        currentSessionToken = sessionToken
+        currentUserName = userName
         isLoading = true
         errorMessage = nil
         recommendation = nil
 
+        let svc = MovieService(sessionToken: sessionToken)
         do {
             if #available(iOS 26, *), foundationModelsAvailable {
                 do {
-                    recommendation = try await fetchWithFoundationModels(chatId: chatId)
+                    recommendation = try await fetchWithFoundationModels(chatId: chatId, service: svc)
                 } catch {
-                    // Unexpected Foundation Models failure → fall back to remote endpoint
-                    recommendation = try await service.fetchRecommendations(chatId: chatId, query: query)
+                    recommendation = try await svc.fetchRecommendations(chatId: chatId, query: query)
                 }
             } else {
-                recommendation = try await service.fetchRecommendations(chatId: chatId, query: query)
+                recommendation = try await svc.fetchRecommendations(chatId: chatId, query: query)
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -76,8 +81,7 @@ class RecommendationsViewModel {
     }
 
     @available(iOS 26, *)
-    private func fetchWithFoundationModels(chatId: Int64) async throws -> Recommendation {
-        // Fetch watched and to-watch separately — mirrors Python _build_user_prompt
+    private func fetchWithFoundationModels(chatId: Int64, service: MovieService) async throws -> Recommendation {
         async let watchedResult = service.fetchMovies(chatId: chatId, status: "watched")
         async let watchlistResult = service.fetchMovies(chatId: chatId, status: "to_watch")
         let watched = (try? await watchedResult) ?? []
@@ -134,11 +138,10 @@ class RecommendationsViewModel {
         )
         let aiList = response.content
 
-        // Filter out anything already watched or in watchlist (mirrors Python's all_existing check)
         let existing = Set((watched + watchlist).map { $0.title.lowercased() })
         let filtered = aiList.suggestions.filter { !existing.contains($0.title.lowercased()) }
 
-        let suggestions = await enrichedSuggestions(from: filtered)
+        let suggestions = await enrichedSuggestions(from: filtered, service: service)
 
         return Recommendation(
             intent: aiList.intent,
@@ -148,11 +151,11 @@ class RecommendationsViewModel {
     }
 
     @available(iOS 26, *)
-    private func enrichedSuggestions(from aiSuggestions: [AIMovieSuggestion]) async -> [Suggestion] {
+    private func enrichedSuggestions(from aiSuggestions: [AIMovieSuggestion], service: MovieService) async -> [Suggestion] {
         await withTaskGroup(of: (Int, Suggestion).self) { group in
             for (index, ai) in aiSuggestions.enumerated() {
                 group.addTask {
-                    let match = try? await self.service.search(query: ai.title, page: 1).results.first
+                    let match = try? await service.search(query: ai.title, page: 1).results.first
                     let suggestion = Suggestion(
                         title: match?.title ?? ai.title,
                         year: match?.year.map(String.init) ?? ai.year,
@@ -174,7 +177,7 @@ class RecommendationsViewModel {
 
     // MARK: - Add to watchlist
 
-    func addToWatchlist(_ suggestion: Suggestion, chatId: Int64) async {
+    func addToWatchlist(_ suggestion: Suggestion, chatId: Int64, addedBy: String) async {
         addingIds.insert(suggestion.id)
         addErrorMessage = nil
         let movie = Movie(
@@ -185,7 +188,7 @@ class RecommendationsViewModel {
             posterPath: suggestion.posterPath
         )
         do {
-            try await service.addMovie(chatId: chatId, movie: movie)
+            try await service.addMovie(chatId: chatId, movie: movie, addedBy: addedBy)
             addedIds.insert(suggestion.id)
         } catch {
             addErrorMessage = error.localizedDescription

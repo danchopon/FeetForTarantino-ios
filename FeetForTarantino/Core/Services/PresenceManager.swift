@@ -6,10 +6,10 @@ final class PresenceManager {
     private(set) var onlineUserIds: Set<Int> = []
 
     private var heartbeatTask: Task<Void, Never>?
-    private let service = MovieService()
 
-    func start(chatId: Int64, userId: Int) {
+    func start(chatId: Int64, userId: Int, sessionToken: String) {
         stop()
+        let service = MovieService(sessionToken: sessionToken)
         heartbeatTask = Task {
             while !Task.isCancelled {
                 try? await service.sendHeartbeat(chatId: chatId, userId: userId)

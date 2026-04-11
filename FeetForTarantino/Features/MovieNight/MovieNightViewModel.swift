@@ -35,21 +35,25 @@ final class MovieNightViewModel {
     var isLoadingAction = false
     var errorMessage: String?
 
-    private let service = MovieService()
+    private var currentSessionToken: String = ""
+
+    private var service: MovieService { MovieService(sessionToken: currentSessionToken) }
 
     // MARK: - Load
 
-    func loadAll(chatId: Int64, userId: Int?) async {
+    func loadAll(chatId: Int64, userId: Int?, sessionToken: String) async {
+        currentSessionToken = sessionToken
+        let svc = MovieService(sessionToken: sessionToken)
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            async let movies = service.fetchMovies(chatId: chatId, status: "to_watch")
-            async let basket = service.fetchBasket(chatId: chatId)
+            async let movies = svc.fetchMovies(chatId: chatId, status: "to_watch")
+            async let basket = svc.fetchBasket(chatId: chatId)
             toWatchMovies = try await movies
             allBasket = try await basket
             if let userId {
-                myBasket = (try? await service.fetchMyBasket(chatId: chatId, userId: userId)) ?? []
+                myBasket = (try? await svc.fetchMyBasket(chatId: chatId, userId: userId)) ?? []
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -130,13 +134,10 @@ final class MovieNightViewModel {
 
     func pickPollRandom(chatId: Int64) async {
         guard !pollMovies.isEmpty else { return }
-        // movie_nums are 1-indexed positions in the to_watch list
-        // pollMovies are already resolved movies; we pass their positions from toWatchMovies
         let nums = pollMovies.compactMap { poll in
             toWatchMovies.firstIndex(where: { $0.id == poll.id }).map { $0 + 1 }
         }
         guard !nums.isEmpty else {
-            // fallback: just pick one from pollMovies locally
             pickedMovie = pollMovies.randomElement()
             return
         }
@@ -183,7 +184,6 @@ final class MovieNightViewModel {
 
     // MARK: - Helpers
 
-    /// Number of basket picks per userId.
     var basketCountByUser: [Int: Int] {
         allBasket.reduce(into: [:]) { counts, entry in
             counts[entry.userId, default: 0] += 1
@@ -194,7 +194,6 @@ final class MovieNightViewModel {
         myBasket.contains(where: { $0.id == movie.id })
     }
 
-    /// Groups allBasket entries by userId for display.
     var basketByUser: [(userId: Int, name: String, movies: [Movie])] {
         var order: [Int] = []
         var dict: [Int: (name: String, movies: [Movie])] = [:]

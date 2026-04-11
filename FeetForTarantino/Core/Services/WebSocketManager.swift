@@ -19,12 +19,14 @@ final class WebSocketManager {
 
     private var wsTask: URLSessionWebSocketTask?
     private var currentChatId: Int64?
+    private var currentSessionToken: String = ""
 
-    func connect(chatId: Int64) {
-        guard chatId != currentChatId else { return }
+    func connect(chatId: Int64, sessionToken: String) {
+        guard chatId != currentChatId || sessionToken != currentSessionToken else { return }
         disconnect()
-        guard let url = MovieService.webSocketURL(chatId: chatId) else { return }
+        guard let url = MovieService.webSocketURL(chatId: chatId, sessionToken: sessionToken) else { return }
         currentChatId = chatId
+        currentSessionToken = sessionToken
         let task = URLSession.shared.webSocketTask(with: url)
         wsTask = task
         task.resume()
@@ -35,6 +37,7 @@ final class WebSocketManager {
         wsTask?.cancel(with: .goingAway, reason: nil)
         wsTask = nil
         currentChatId = nil
+        currentSessionToken = ""
     }
 
     private func receiveLoop() {
@@ -51,9 +54,10 @@ final class WebSocketManager {
                 }
             } catch {
                 guard let chatId = self.currentChatId else { return }
+                let token = self.currentSessionToken
                 try? await Task.sleep(for: .seconds(5))
                 guard self.currentChatId == chatId else { return }
-                self.connect(chatId: chatId)
+                self.connect(chatId: chatId, sessionToken: token)
             }
         }
     }

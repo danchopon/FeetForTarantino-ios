@@ -18,7 +18,8 @@ struct SearchView: View {
                 )
                 .searchFocused($isFocused)
                 .onSubmit(of: .search) {
-                    Task { await viewModel.search() }
+                    let token = chatStore.sessionToken(for: chatStore.selectedChat?.chatId ?? 0)
+                    Task { await viewModel.search(sessionToken: token) }
                 }
                 .alert("Error", isPresented: Binding(
                     get: { viewModel.addErrorMessage != nil },
@@ -76,7 +77,9 @@ struct SearchView: View {
                                 viewModel.addErrorMessage = "No group selected. Connect a Telegram group first."
                                 return
                             }
-                            Task { await viewModel.addMovie(movie, chatId: chatId) }
+                            let token = chatStore.sessionToken(for: chatId)
+                            let name = chatStore.sessions[chatId]?.userName ?? "iOS"
+                            Task { await viewModel.addMovie(movie, chatId: chatId, sessionToken: token, addedBy: name) }
                         }
                         .onAppear {
                             Task { await viewModel.loadNextPageIfNeeded(currentItem: movie) }

@@ -30,10 +30,15 @@ class WatchlistViewModel {
     var statusFilter: StatusFilter = .toWatch
 
     private(set) var currentChatId: Int64?
-    private let service = MovieService()
+    private var currentSessionToken: String = ""
+    private var currentUserName: String = "iOS"
 
-    func fetchMovies(chatId: Int64) async {
+    private var service: MovieService { MovieService(sessionToken: currentSessionToken) }
+
+    func fetchMovies(chatId: Int64, sessionToken: String, userName: String) async {
         currentChatId = chatId
+        currentSessionToken = sessionToken
+        currentUserName = userName
         isLoading = true
         errorMessage = nil
 
@@ -53,7 +58,7 @@ class WatchlistViewModel {
     func markWatched(_ movie: Movie) async {
         guard let chatId = currentChatId else { return }
         do {
-            try await service.markWatched(movieId: movie.id, chatId: chatId)
+            try await service.markWatched(movieId: movie.id, chatId: chatId, watchedBy: currentUserName)
             movies.removeAll { $0.id == movie.id }
         } catch {
             errorMessage = error.localizedDescription

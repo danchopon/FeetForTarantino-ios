@@ -41,7 +41,11 @@ struct MovieNightView: View {
             .task(id: chatStore.selectedChat?.chatId) {
                 guard let id = chatId else { return }
                 async let m: Void = chatStore.fetchMembers(for: id)
-                async let d: Void = viewModel.loadAll(chatId: id, userId: selectedUser?.userId)
+                async let d: Void = viewModel.loadAll(
+                    chatId: id,
+                    userId: selectedUser?.userId,
+                    sessionToken: chatStore.sessionToken(for: id)
+                )
                 _ = await (m, d)
             }
             .onChange(of: wsManager.basketEventCount) { _, _ in
@@ -101,7 +105,11 @@ struct MovieNightView: View {
         .refreshable {
             guard let id = chatId else { return }
             async let m: Void = chatStore.fetchMembers(for: id)
-            async let d: Void = viewModel.loadAll(chatId: id, userId: selectedUser?.userId)
+            async let d: Void = viewModel.loadAll(
+                chatId: id,
+                userId: selectedUser?.userId,
+                sessionToken: chatStore.sessionToken(for: id)
+            )
             _ = await (m, d)
         }
     }
