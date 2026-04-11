@@ -16,6 +16,7 @@ enum MovieServiceError: LocalizedError {
     case alreadyExists
     case notFound
     case unauthorized
+    case forbidden
     case tokenExpired
 
     var errorDescription: String? {
@@ -23,6 +24,7 @@ enum MovieServiceError: LocalizedError {
         case .alreadyExists: return "Movie already in watchlist"
         case .notFound: return "Movie not found"
         case .unauthorized: return "Session expired. Open the app from Telegram to log in again."
+        case .forbidden: return "Session mismatch. Open the app from Telegram to log in again."
         case .tokenExpired: return "This link has expired. Tap /app in Telegram again."
         }
     }
@@ -63,13 +65,14 @@ struct MovieService {
         #if DEBUG
         logResponse(method: "GET", url: url, requestBody: nil, data: data, response: response, duration: -start.timeIntervalSinceNow)
         #endif
-        if let http = response as? HTTPURLResponse, http.statusCode == 401 {
-            throw MovieServiceError.unauthorized
+        if let http = response as? HTTPURLResponse {
+            if http.statusCode == 401 { throw MovieServiceError.unauthorized }
+            if http.statusCode == 403 { throw MovieServiceError.forbidden }
         }
         return data
     }
 
-    /// POST / PATCH / DELETE – adds Authorization header and checks for 401.
+    /// POST / PATCH / DELETE – adds Authorization header and checks for 401/403.
     @discardableResult
     private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
         var req = request
@@ -81,8 +84,9 @@ struct MovieService {
         #if DEBUG
         logResponse(method: req.httpMethod ?? "?", url: req.url, requestBody: req.httpBody, data: data, response: response, duration: -start.timeIntervalSinceNow)
         #endif
-        if let http = response as? HTTPURLResponse, http.statusCode == 401 {
-            throw MovieServiceError.unauthorized
+        if let http = response as? HTTPURLResponse {
+            if http.statusCode == 401 { throw MovieServiceError.unauthorized }
+            if http.statusCode == 403 { throw MovieServiceError.forbidden }
         }
         return (data, response)
     }

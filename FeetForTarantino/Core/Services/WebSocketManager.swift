@@ -16,6 +16,7 @@ private struct WSEvent: Decodable {
 final class WebSocketManager {
     private(set) var movieEventCount = 0
     private(set) var basketEventCount = 0
+    private(set) var sessionInvalid = false
 
     private var wsTask: URLSessionWebSocketTask?
     private var currentChatId: Int64?
@@ -38,6 +39,7 @@ final class WebSocketManager {
         wsTask = nil
         currentChatId = nil
         currentSessionToken = ""
+        sessionInvalid = false
     }
 
     private func receiveLoop() {
@@ -53,6 +55,11 @@ final class WebSocketManager {
                     }
                 }
             } catch {
+                // Close code 4001: session invalid or chat_id mismatch — do not reconnect
+                if let task = self.wsTask, task.closeCode.rawValue == 4001 {
+                    self.sessionInvalid = true
+                    return
+                }
                 guard let chatId = self.currentChatId else { return }
                 let token = self.currentSessionToken
                 try? await Task.sleep(for: .seconds(5))
